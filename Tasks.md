@@ -1,4 +1,4 @@
-### 👩‍💻 Persona 1: Extractor de Datos (Data Miner) - Yo
+### 👩‍💻 Persona 1: Extractor de Datos (Data Miner) - Marce
 *   *Parte de Código (Python):* Se encarga de crear el script principal (extraer_mapa.py) usando la librería osmnx. Su misión es descargar el mapa de la ciudad elegida, extraer los nodos (intersecciones) y las aristas (calles), y exportar todo a un archivo CSV. Debe asegurarse de que haya *más de 1500 nodos*.
 *   *Parte del Informe (Markdown):* Redacta la sección *"Descripción del conjunto de datos (dataset)"*. Explica de dónde salió la data (OpenStreetMap), cuántos nodos y aristas hay, y qué columnas tienen los CSV (latitud, longitud, id).
 
