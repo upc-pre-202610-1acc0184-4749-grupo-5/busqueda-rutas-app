@@ -1,3 +1,17 @@
+# Informe de Trabajo Parcial: Búsqueda de Rutas (Waze Clone)
+
+## 1. Descripción del Problema
+
+El crecimiento demográfico y la densificación urbana en las grandes metrópolis europeas, como *Barcelona*, han generado desafíos significativos en la gestión del tráfico y la movilidad vehicular. Conductoras y conductores de transporte público, logística de última milla y vehículos particulares enfrentan retrasos diarios debido a la congestión en la compleja red vial del distrito de L'Eixample y zonas aledañas. 
+
+En este contexto, encontrar la ruta óptima entre dos puntos no solo depende de la distancia física, sino del tiempo de viaje, el cual varía drásticamente según la densidad del tráfico y el sentido de las calles. El problema radica en que los conductores no cuentan con la capacidad de procesar en tiempo real todas las posibles combinaciones de calles para minimizar su tiempo de traslado, lo que resulta en un aumento de la huella de carbono, mayores costos de combustible y pérdida de horas productivas.
+
+Para analizar este problema, hemos modelado la red vial de Barcelona mediante teoría de grafos, como se visualiza a continuación:
+
+![Grafo de la red vial de Barcelona para vehículos](assets/barcelona_map.png)
+
+A través de la implementación de algoritmos de complejidad algorítmica y búsqueda en grafos, el presente proyecto busca desarrollar un sistema computacional capaz de encontrar la ruta más corta y eficiente entre cualquier par de intersecciones dentro de esta ciudad.
+
 ## 2. Descripción del conjunto de datos (Dataset)
 
 Para el desarrollo de este proyecto, hemos seleccionado la ciudad de **Barcelona, España**, debido a su famosa estructura de red vial en cuadrícula (L'Eixample), la cual es un escenario ideal para la aplicación de algoritmos de optimización de rutas. 
