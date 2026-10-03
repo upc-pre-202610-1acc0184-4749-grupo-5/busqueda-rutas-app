@@ -43,4 +43,6 @@ De esta manera, una ruta que físicamente es más corta pero se encuentra altame
 
 Referencias:
 
+Adamo, T., Gendreau, M., Ghiani, G., y Guerriero, E. (2024). A review of recent advances in time-dependent vehicle routing. *European Journal of Operational Research*, *319*(1), 1-15. https://doi.org/10.1016/j.ejor.2024.06.016
+
 Hrushka, V. V., Horozhankina, N. A., Boyko, Z. V., Korneyev, M. V., & Nebaba, N. A. (2021). Transport infrastructure of Spain as a factor in tourism development. *Journal of Geology, Geography and Geoecology, 30*(3), 429–440. https://doi.org/10.15421/112139
