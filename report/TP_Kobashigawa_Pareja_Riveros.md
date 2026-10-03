@@ -40,3 +40,7 @@ Donde:
   * **Madrugada (Factor mínimo 1.0):** De 23:00 a 05:00 hrs, representando calles descongestionadas.
 
 De esta manera, una ruta que físicamente es más corta pero se encuentra altamente congestionada, tendrá un peso total mayor, logrando que el algoritmo desvíe al usuario hacia una ruta más despejada pero ligeramente más larga, cumpliendo exactamente con la lógica de un sistema GPS moderno.
+
+Referencias:
+
+Hrushka, V. V., Horozhankina, N. A., Boyko, Z. V., Korneyev, M. V., & Nebaba, N. A. (2021). Transport infrastructure of Spain as a factor in tourism development. Journal of Geology, *Geography and Geoecology, 30*(3), 429–440. https://doi.org/10.15421/112139
