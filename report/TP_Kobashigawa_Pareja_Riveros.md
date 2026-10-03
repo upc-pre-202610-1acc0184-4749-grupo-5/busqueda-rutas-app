@@ -48,3 +48,5 @@ Adamo, T., Gendreau, M., Ghiani, G., y Guerriero, E. (2024). A review of recent 
 Área Metropolitana de Barcelona. (2025). *Dades bàsiques de mobilitat, 2024*. https://hdl.handle.net/20.500.14439/485
 
 Hrushka, V. V., Horozhankina, N. A., Boyko, Z. V., Korneyev, M. V., & Nebaba, N. A. (2021). Transport infrastructure of Spain as a factor in tourism development. *Journal of Geology, Geography and Geoecology, 30*(3), 429–440. https://doi.org/10.15421/112139
+
+TomTom. (2025). *Barcelona traffic report*. TomTom Traffic Index. Recuperado el 2 de octubre de 2026, de https://www.tomtom.com/traffic-index/city/barcelona/
