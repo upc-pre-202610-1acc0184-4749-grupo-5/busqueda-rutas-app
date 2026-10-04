@@ -136,7 +136,8 @@ Esto asegura que la aplicación desvíe inteligentemente a los conductores de av
 
 <h2 style="color: #404040; font-family: Arial, sans-serif; margin-left: 40px; font-size: 20px; font-weight: normal;">Anexos</h2>
 
-* El código fuente de extracción y asignación de tráfico se encuentra respaldado en el repositorio GitHub oficial del grupo. Las imágenes del renderizado del grafo constan en la carpeta `assets/`.
+* El código fuente de extracción y asignación de tráfico, así como el historial de *commits* de los integrantes, se encuentra respaldado en nuestro repositorio oficial de GitHub: [Repositorio Grupo 5](https://github.com/upc-pre-202610-1acc0184-4749-grupo-5/busqueda-rutas-app).
+* Las imágenes del renderizado del grafo constan en la carpeta `assets/`.
 
 <div style="page-break-after: always;"></div>
 
