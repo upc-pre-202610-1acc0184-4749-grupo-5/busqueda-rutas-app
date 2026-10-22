@@ -11,7 +11,7 @@ aristas_df = pd.read_csv("dataset/sudoku_edges.csv")
 os.makedirs("report/assets", exist_ok=True)
 
 # Mapeo de colores y etiquetas de integrantes
-# Kobashigawa 800 nodos, Pareja 800 nodos, Riveros 801 nodos
+# Kobashigawa 800 nodos, Pareja 801 nodos, Riveros 800 nodos
 COLOR_MAP = {
     "Kobashigawa Ugaz, Juan Alejandro": "#1F77B4",  # Azul clásico
     "Pareja Calloapaza, Marcelo Fausto": "#2CA02C", # Verde esmeralda
@@ -20,8 +20,8 @@ COLOR_MAP = {
 
 SHORT_NAMES = {
     "Kobashigawa Ugaz, Juan Alejandro": "Kobashigawa Ugaz, J.: 800 nodos",
-    "Pareja Calloapaza, Marcelo Fausto": "Pareja Calloapaza, M.: 800 nodos",
-    "Riveros Mera, Jennifer Yamilet": "Riveros Mera, J.: 801 nodos"
+    "Pareja Calloapaza, Marcelo Fausto": "Pareja Calloapaza, M.: 801 nodos",
+    "Riveros Mera, Jennifer Yamilet": "Riveros Mera, J.: 800 nodos"
 }
 
 nodos_df['color'] = nodos_df['integrante'].map(COLOR_MAP)
@@ -57,9 +57,9 @@ for i in range(0, 50, 7):
 # Badges informativos de particion ubicados estrategicamente
 ax1.text(24, -7.5, "Partición Kobashigawa: 800 nodos (Filas 0-16)", fontsize=8, color="#0D47A1", fontweight='bold', ha='center',
          bbox=dict(boxstyle="round,pad=0.3", fc="#E3F2FD", ec="#1F77B4", lw=1.2, alpha=0.92))
-ax1.text(24, -24.5, "Partición Pareja: 800 nodos (Filas 16-32)", fontsize=8, color="#1B5E20", fontweight='bold', ha='center',
+ax1.text(24, -24.5, "Partición Pareja: 801 nodos (Filas 16-32)", fontsize=8, color="#1B5E20", fontweight='bold', ha='center',
          bbox=dict(boxstyle="round,pad=0.3", fc="#E8F5E9", ec="#2CA02C", lw=1.2, alpha=0.92))
-ax1.text(24, -41.5, "Partición Riveros: 801 nodos (Filas 32-48)", fontsize=8, color="#B71C1C", fontweight='bold', ha='center',
+ax1.text(24, -41.5, "Partición Riveros: 800 nodos (Filas 32-48)", fontsize=8, color="#B71C1C", fontweight='bold', ha='center',
          bbox=dict(boxstyle="round,pad=0.3", fc="#FFEBEE", ec="#D62728", lw=1.2, alpha=0.92))
 
 ax1.set_title("A. Grafo Completo de Restricciones (N=49, |V|=2,401 celdas)\nDistribución de Nodos por Integrante (Rúbrica >= 500 nodos c/u)", 
@@ -104,8 +104,8 @@ nx.draw_networkx_labels(G_sub, pos_sub, ax=ax2, font_size=6.2, font_color='white
 # Leyenda explicativa en Panel 2
 legend_elements = [
     mpatches.Patch(facecolor='#1F77B4', edgecolor='#0D47A1', label='Kobashigawa: 800 nodos (Filas 0-16)'),
-    mpatches.Patch(facecolor='#2CA02C', edgecolor='#1B5E20', label='Pareja: 800 nodos (Filas 16-32)'),
-    mpatches.Patch(facecolor='#D62728', edgecolor='#B71C1C', label='Riveros: 801 nodos (Filas 32-48)'),
+    mpatches.Patch(facecolor='#2CA02C', edgecolor='#1B5E20', label='Pareja: 801 nodos (Filas 16-32)'),
+    mpatches.Patch(facecolor='#D62728', edgecolor='#B71C1C', label='Riveros: 800 nodos (Filas 32-48)'),
     mpatches.Patch(facecolor='#78909C', edgecolor='none', label='Aristas: Restricciones mutuas (u != v)')
 ]
 ax2.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, -0.15), ncol=2, frameon=True, fontsize=7.8)
@@ -115,7 +115,7 @@ ax2.set_title("B. Subgrafo Inducido de Restricciones Mutuas entre Integrantes\nI
 ax2.axis('off')
 
 # Titulo superior general con ajuste de coordenadas para evitar solapamientos
-fig.suptitle("Grafo de Restricciones del Sudoku Generalizado N=49 (k=7) — Total 2,401 Nodos\nDivisión Equitativa del Modelado por Integrante según Rúbrica UPC (Kobashigawa: 800, Pareja: 800, Riveros: 801)", 
+fig.suptitle("Grafo de Restricciones del Sudoku Generalizado N=49 (k=7) — Total 2,401 Nodos\nDivisión Equitativa del Modelado por Integrante según Rúbrica UPC (Kobashigawa: 800, Pareja: 801, Riveros: 800)", 
              fontsize=12.5, fontweight='bold', y=0.97)
 
 plt.subplots_adjust(top=0.86, bottom=0.15, left=0.06, right=0.96, wspace=0.18)
