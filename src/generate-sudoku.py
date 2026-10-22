@@ -30,12 +30,26 @@ def generar_grafo_sudoku_generalizado(k=7):
         for c in range(N):
             node_id = r * N + c
             bloque_id = (r // k) * k + (c // k)
+            
+            # Particion de nodos por integrante (Rubrica: >= 500 nodos c/u, total 2401 nodos)
+            # Kobashigawa: 800 nodos (0..799)
+            # Pareja: 800 nodos (800..1599)
+            # Riveros: 801 nodos (1600..2400)
+            if node_id < 800:
+                integrante = "Kobashigawa Ugaz, Juan Alejandro"
+            elif node_id < 1600:
+                integrante = "Pareja Calloapaza, Marcelo Fausto"
+            else:
+                integrante = "Riveros Mera, Jennifer Yamilet"
+
             nodos.append({
                 'node_id': node_id,
                 'fila': r,
                 'columna': c,
                 'bloque': bloque_id,
-                'orden_k': k
+                'orden_k': k,
+                'integrante': integrante,
+                'responsable': integrante
             })
             row_groups[r].append(node_id)
             col_groups[c].append(node_id)
