@@ -5,13 +5,14 @@ Módulo de Algoritmia y Complejidad para la resolución de Sudokus Generalizados
 Desarrollado para el Hito 2 (TB2) - Complejidad Algorítmica (CC184).
 Autor: Pareja Calloapaza, Marcelo Fausto (u202411627)
 
-Implementa y compara dos estrategias algorítmicas de búsqueda sobre el grafo de restricciones:
-1. Backtracking Clásico con Búsqueda en Profundidad (DFS Secuencial).
-2. Backtracking Optimizado con Heurística MRV (Minimum Remaining Values)
-   con Bitmasks y Poda Sistemática (Forward Checking).
+Presenta una arquitectura comparativa con 3 niveles evolutivos de optimización:
+  Nivel 1: Backtracking Básico (Búsqueda en Profundidad / DFS Secuencial)
+  Nivel 2: Backtracking con Heurística MRV Clásica (Minimum Remaining Values / "Fallar Primero")
+  Nivel 3: Backtracking con Heurística MRV + Poda por Máscaras de Bits (Bitmasks en O(1))
 """
 
 import time
+import copy
 from typing import List, Tuple, Optional, Dict
 
 
@@ -26,89 +27,187 @@ class SudokuSolver:
         self.N = k * k
         self.board = [row[:] for row in board]
         
-        # Métricas de rendimiento algorítmico
+        # Métricas de rendimiento
         self.backtracks = 0
         self.nodes_explored = 0
         self.execution_time = 0.0
 
     # =========================================================================
-    # ESTRATEGIA 1: BACKTRACKING BÁSICO (DFS SECUENCIAL)
+    # REGLAS DEL JUEGO / VALIDACIÓN DE RESTRICCIONES DE ARISTA (O(N))
     # =========================================================================
-    def is_valid_move(self, board: List[List[int]], row: int, col: int, val: int) -> bool:
-        """Verificación estándar iterativa en tiempo O(N)."""
+    def es_movimiento_valido(self, board: List[List[int]], fila: int, col: int, numero: int) -> bool:
+        """
+        Verifica si la asignación es legal respecto a las aristas del grafo:
+        1. Fila
+        2. Columna
+        3. Subbloque k x k
+        """
+        # 1. Comprobar fila
         for c in range(self.N):
-            if board[row][c] == val:
+            if board[fila][c] == numero:
                 return False
-        for r in range(self.N):
-            if board[r][col] == val:
+
+        # 2. Comprobar columna
+        for f in range(self.N):
+            if board[f][col] == numero:
                 return False
-        start_r = (row // self.k) * self.k
-        start_c = (col // self.k) * self.k
-        for r in range(start_r, start_r + self.k):
-            for c in range(start_c, start_c + self.k):
-                if board[r][c] == val:
+
+        # 3. Comprobar subbloque k x k
+        inicio_fila = (fila // self.k) * self.k
+        inicio_col = (col // self.k) * self.k
+        for ifil in range(inicio_fila, inicio_fila + self.k):
+            for icol in range(inicio_col, inicio_col + self.k):
+                if board[ifil][icol] == numero:
                     return False
+
         return True
 
-    def solve_basic(self) -> Tuple[bool, List[List[int]], Dict]:
+    # =========================================================================
+    # NIVEL 1: BACKTRACKING BÁSICO (DFS SECUENCIAL)
+    # =========================================================================
+    def resolver_basico(self) -> Tuple[bool, List[List[int]], Dict]:
+        """
+        Resuelve mediante Backtracking tradicional explorando celdas
+        en orden secuencial de lectura.
+        """
         self.backtracks = 0
         self.nodes_explored = 0
         start_time = time.perf_counter()
 
-        current_board = [row[:] for row in self.board]
-        success = self._backtrack_basic(current_board)
+        tablero = [row[:] for row in self.board]
+        exito = self._backtrack_basico(tablero)
 
         self.execution_time = (time.perf_counter() - start_time) * 1000
 
-        metrics = {
-            "algoritmo": "Backtracking Básico (DFS Secuencial)",
-            "resuelto": success,
+        metricas = {
+            "estrategia": "Nivel 1: Backtracking Básico (DFS Secuencial)",
+            "resuelto": exito,
             "tiempo_ms": round(self.execution_time, 3),
             "nodos_explorados": self.nodes_explored,
             "backtracks": self.backtracks
         }
-        return success, current_board, metrics
+        return exito, tablero, metricas
 
-    def _find_empty_sequential(self, board: List[List[int]]) -> Optional[Tuple[int, int]]:
-        for r in range(self.N):
-            for c in range(self.N):
-                if board[r][c] == 0:
-                    return r, c
+    def _encontrar_vacia_secuencial(self, board: List[List[int]]) -> Optional[Tuple[int, int]]:
+        for c in range(self.N):
+            for f in range(self.N):
+                if board[f][c] == 0:
+                    return f, c
         return None
 
-    def _backtrack_basic(self, board: List[List[int]]) -> bool:
-        empty = self._find_empty_sequential(board)
-        if not empty:
-            return True
+    def _backtrack_basico(self, board: List[List[int]]) -> bool:
+        celda = self._encontrar_vacia_secuencial(board)
+        if celda is None:
+            return True  # Tablero completo
 
-        row, col = empty
-        for val in range(1, self.N + 1):
+        fila, col = celda
+        for num in range(1, self.N + 1):
             self.nodes_explored += 1
-            if self.is_valid_move(board, row, col, val):
-                board[row][col] = val
-                if self._backtrack_basic(board):
+            if self.es_movimiento_valido(board, fila, col, num):
+                board[fila][col] = num
+                if self._backtrack_basico(board):
                     return True
-                board[row][col] = 0
+                # Vuelta atrás
+                board[fila][col] = 0
                 self.backtracks += 1
 
         return False
 
     # =========================================================================
-    # ESTRATEGIA 2: BACKTRACKING CON HEURÍSTICA MRV OPTIMIZADA CON MÁSCARAS DE BITS
+    # NIVEL 2: BACKTRACKING CON HEURÍSTICA MRV CLÁSICA (DOMINIOS EN LISTAS)
     # =========================================================================
-    def solve_mrv(self) -> Tuple[bool, List[List[int]], Dict]:
+    def resolver_mrv_clasico(self) -> Tuple[bool, List[List[int]], Dict]:
         """
-        Resuelve mediante Backtracking con MRV y Bitmasks O(1).
-        Mantiene conjuntos de bits de valores usados por fila, columna y bloque,
-        permitiendo calcular los candidatos legales mediante operaciones bitwise instantáneas.
+        Resuelve mediante Backtracking con heurística MRV (Minimum Remaining Values),
+        calculando los candidatos legales con listas iterativas y aplicando poda inmediata.
         """
         self.backtracks = 0
         self.nodes_explored = 0
         start_time = time.perf_counter()
 
-        current_board = [row[:] for row in self.board]
+        tablero = [row[:] for row in self.board]
+        exito = self._backtrack_mrv_clasico(tablero)
 
-        # Máscaras de bits para números ya presentes: bit 'v' representa el valor 'v'
+        self.execution_time = (time.perf_counter() - start_time) * 1000
+
+        metricas = {
+            "estrategia": "Nivel 2: Backtracking con Heurística MRV Clásica",
+            "resuelto": exito,
+            "tiempo_ms": round(self.execution_time, 3),
+            "nodos_explorados": self.nodes_explored,
+            "backtracks": self.backtracks
+        }
+        return exito, tablero, metricas
+
+    def _obtener_valores_legales(self, board: List[List[int]], fila: int, col: int) -> List[int]:
+        candidatos = []
+        for i in range(self.N):
+            val = i + 1
+            if self.es_movimiento_valido(board, fila, col, val):
+                candidatos.append(val)
+        return candidatos
+
+    def _encontrar_celda_mrv_clasica(self, board: List[List[int]]) -> Optional[Tuple[int, int, List[int]]]:
+        menor_cantidad = self.N + 1
+        mejor_celda = None
+
+        for f in range(self.N):
+            for c in range(self.N):
+                if board[f][c] == 0:
+                    candidatos = self._obtener_valores_legales(board, f, c)
+                    cantidad = len(candidatos)
+
+                    # Poda inmediata (callejón sin salida)
+                    if cantidad == 0:
+                        return f, c, []
+
+                    if cantidad < menor_cantidad:
+                        menor_cantidad = cantidad
+                        mejor_celda = (f, c, candidatos)
+                        if menor_cantidad == 1:
+                            return mejor_celda  # Singleton óptimo
+
+        return mejor_celda
+
+    def _backtrack_mrv_clasico(self, board: List[List[int]]) -> bool:
+        celda = self._encontrar_celda_mrv_clasica(board)
+        if celda is None:
+            return True  # Tablero completo
+
+        fila, col, candidatos = celda
+
+        # Si el dominio es vacío, podamos la rama
+        if len(candidatos) == 0:
+            self.backtracks += 1
+            return False
+
+        for cand in candidatos:
+            self.nodes_explored += 1
+            board[fila][col] = cand
+
+            if self._backtrack_mrv_clasico(board):
+                return True
+
+            # Vuelta atrás
+            board[fila][col] = 0
+            self.backtracks += 1
+
+        return False
+
+    # =========================================================================
+    # NIVEL 3: BACKTRACKING CON HEURÍSTICA MRV + MÁSCARAS DE BITS (BITMASKS O(1))
+    # =========================================================================
+    def resolver_mrv_bitmasks(self) -> Tuple[bool, List[List[int]], Dict]:
+        """
+        Resuelve mediante Backtracking con MRV utilizando máscaras de bits binarias.
+        Reduce las comprobaciones de fila, columna y bloque a operaciones bitwise O(1).
+        """
+        self.backtracks = 0
+        self.nodes_explored = 0
+        start_time = time.perf_counter()
+
+        tablero = [row[:] for row in self.board]
+
         row_masks = [0] * self.N
         col_masks = [0] * self.N
         box_masks = [0] * self.N
@@ -116,7 +215,7 @@ class SudokuSolver:
 
         for r in range(self.N):
             for c in range(self.N):
-                val = current_board[r][c]
+                val = tablero[r][c]
                 if val != 0:
                     bit = 1 << val
                     row_masks[r] |= bit
@@ -125,26 +224,25 @@ class SudokuSolver:
                 else:
                     empty_cells.append((r, c))
 
-        all_mask = (1 << (self.N + 1)) - 2  # Bits del 1 al N en 1
+        all_mask = (1 << (self.N + 1)) - 2
 
-        success = self._backtrack_mrv_fast(current_board, empty_cells, row_masks, col_masks, box_masks, all_mask)
+        exito = self._backtrack_mrv_bitmasks_core(tablero, empty_cells, row_masks, col_masks, box_masks, all_mask)
 
         self.execution_time = (time.perf_counter() - start_time) * 1000
 
-        metrics = {
-            "algoritmo": "Backtracking Optimizado con Heurística MRV + Bitmasks",
-            "resuelto": success,
+        metricas = {
+            "estrategia": "Nivel 3: Backtracking con Heurística MRV + Bitmasks O(1)",
+            "resuelto": exito,
             "tiempo_ms": round(self.execution_time, 3),
             "nodos_explorados": self.nodes_explored,
             "backtracks": self.backtracks
         }
-        return success, current_board, metrics
+        return exito, tablero, metricas
 
-    def _backtrack_mrv_fast(self, board, empty_cells, row_masks, col_masks, box_masks, all_mask) -> bool:
+    def _backtrack_mrv_bitmasks_core(self, board, empty_cells, row_masks, col_masks, box_masks, all_mask) -> bool:
         if not empty_cells:
             return True
 
-        # Heurística MRV: Buscar la celda con menor cantidad de bits disponibles
         best_idx = -1
         best_candidates_mask = 0
         min_count = self.N + 2
@@ -155,7 +253,7 @@ class SudokuSolver:
             avail = all_mask & (~used)
             count = avail.bit_count()
 
-            # Poda inmediata: si alguna celda no tiene opciones legales, este camino es un callejón sin salida
+            # Poda inmediata
             if count == 0:
                 self.backtracks += 1
                 return False
@@ -165,16 +263,13 @@ class SudokuSolver:
                 best_idx = i
                 best_candidates_mask = avail
                 if count == 1:
-                    break  # Singleton: menor opción imposible, seleccionar de inmediato
+                    break
 
-        # Extraer la celda seleccionada por MRV
         r, c = empty_cells.pop(best_idx)
         b_idx = (r // self.k) * self.k + (c // self.k)
 
-        # Probar cada candidato disponible
         mask = best_candidates_mask
         while mask > 0:
-            # Obtener el bit menos significativo
             lowest_bit = mask & (-mask)
             val = lowest_bit.bit_length() - 1
 
@@ -184,10 +279,9 @@ class SudokuSolver:
             col_masks[c] |= lowest_bit
             box_masks[b_idx] |= lowest_bit
 
-            if self._backtrack_mrv_fast(board, empty_cells, row_masks, col_masks, box_masks, all_mask):
+            if self._backtrack_mrv_bitmasks_core(board, empty_cells, row_masks, col_masks, box_masks, all_mask):
                 return True
 
-            # Vuelta atrás (Backtrack)
             board[r][c] = 0
             row_masks[r] &= ~lowest_bit
             col_masks[c] &= ~lowest_bit
@@ -196,16 +290,14 @@ class SudokuSolver:
 
             mask &= ~lowest_bit
 
-        # Restaurar celda a la lista para niveles anteriores
         empty_cells.insert(best_idx, (r, c))
         return False
 
 
-def print_board(board: List[List[int]], k: int = 3):
+def imprimir_tablero(board: List[List[int]], k: int = 3):
     N = k * k
     width = len(str(N)) + 1
     sep_line = "+" + "+".join(["-" * (k * width + 1)] * k) + "+"
-    
     for r in range(N):
         if r % k == 0:
             print(sep_line)
@@ -219,14 +311,16 @@ def print_board(board: List[List[int]], k: int = 3):
     print(sep_line)
 
 
+# =========================================================================
+# BANCO DE PRUEBAS COMPARATIVO (BENCHMARK)
+# =========================================================================
 if __name__ == "__main__":
-    print("=" * 70)
-    print("MÓDULO DE ALGORITMIA: BENCHMARKING DE RESOLUCIÓN DE SUDOKU")
+    print("=" * 75)
+    print("MODULO DE ALGORITMIA: BENCHMARKING DE RESOLUCION DE SUDOKU")
     print("Autor: Pareja Calloapaza, Marcelo Fausto (u202411627)")
-    print("=" * 70)
+    print("=" * 75)
 
-    # Instancia 9x9 difícil (17 pistas iniciales)
-    board_9x9_hard = [
+    tablero_dificil = [
         [8, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 3, 6, 0, 0, 0, 0, 0],
         [0, 7, 0, 0, 9, 0, 2, 0, 0],
@@ -238,33 +332,40 @@ if __name__ == "__main__":
         [0, 9, 0, 0, 0, 0, 4, 0, 0]
     ]
 
-    print("\n--- TABLERO ORIGINAL 9x9 (k=3) ---")
-    print_board(board_9x9_hard, k=3)
+    print("\n--- TABLERO DE PRUEBA (Dificultad Alta: 17 pistas iniciales) ---")
+    imprimir_tablero(tablero_dificil, k=3)
 
-    solver = SudokuSolver(board_9x9_hard, k=3)
+    solver = SudokuSolver(tablero_dificil, k=3)
 
-    print("\n1. Ejecutando Backtracking Básico (DFS Secuencial)...")
-    res_basic, board_res_basic, met_basic = solver.solve_basic()
-    print(f"   -> Resuelto: {res_basic}")
-    print(f"   -> Tiempo: {met_basic['tiempo_ms']} ms")
-    print(f"   -> Nodos explorados: {met_basic['nodos_explorados']}")
-    print(f"   -> Backtracks (retrocesos): {met_basic['backtracks']}")
+    # 1. Nivel 1: Básico
+    print("\n[1/3] Ejecutando Nivel 1: Backtracking Basico (DFS Secuencial)...")
+    res1, board1, met1 = solver.resolver_basico()
+    print(f"      -> Resuelto: {res1} | Tiempo: {met1['tiempo_ms']:.2f} ms | Backtracks: {met1['backtracks']:,}")
 
-    print("\n2. Ejecutando Backtracking Optimizado (Heurística MRV + Bitmasks)...")
-    res_mrv, board_res_mrv, met_mrv = solver.solve_mrv()
-    print(f"   -> Resuelto: {res_mrv}")
-    print(f"   -> Tiempo: {met_mrv['tiempo_ms']} ms")
-    print(f"   -> Nodos explorados: {met_mrv['nodos_explorados']}")
-    print(f"   -> Backtracks (retrocesos): {met_mrv['backtracks']}")
+    # 2. Nivel 2: MRV Clásico (Tu algoritmo con listas)
+    print("\n[2/3] Ejecutando Nivel 2: Backtracking con Heuristica MRV Clasica...")
+    res2, board2, met2 = solver.resolver_mrv_clasico()
+    print(f"      -> Resuelto: {res2} | Tiempo: {met2['tiempo_ms']:.2f} ms | Backtracks: {met2['backtracks']:,}")
 
-    speedup = met_basic['tiempo_ms'] / max(met_mrv['tiempo_ms'], 0.001)
-    prune_pct = (1 - (met_mrv['backtracks'] / max(met_basic['backtracks'], 1))) * 100
+    # 3. Nivel 3: MRV con Bitmasks (Optimización de bajo nivel)
+    print("\n[3/3] Ejecutando Nivel 3: Backtracking con Heuristica MRV + Bitmasks O(1)...")
+    res3, board3, met3 = solver.resolver_mrv_bitmasks()
+    print(f"      -> Resuelto: {res3} | Tiempo: {met3['tiempo_ms']:.2f} ms | Backtracks: {met3['backtracks']:,}")
 
-    print("\n" + "=" * 70)
-    print("ANÁLISIS COMPARATIVO DE RENDIMIENTO (JUSTIFICACIÓN DE COMPLEJIDAD):")
-    print(f"• Factor de Aceleración (Speedup): {speedup:.1f}x más rápido con MRV + Bitmasks.")
-    print(f"• Reducción de Retrocesos (Poda): MRV redujo los backtracks en un {prune_pct:.2f}%.")
-    print("=" * 70)
+    print("\n--- TABLERO RESUELTO (VERIFICACION FINAL) ---")
+    imprimir_tablero(board3, k=3)
 
-    print("\n--- TABLERO RESUELTO (VERIFICACIÓN) ---")
-    print_board(board_res_mrv, k=3)
+    print("\n" + "=" * 75)
+    print("CUADRO COMPARATIVO FINAL DE COMPLEJIDAD Y RENDIMIENTO")
+    print("=" * 75)
+    print(f"{'Estrategia':<40} | {'Tiempo (ms)':<12} | {'Backtracks':<12} | {'Poda':<10}")
+    print("-" * 75)
+    poda_mrv = ((met1['backtracks'] - met2['backtracks']) / met1['backtracks']) * 100
+    print(f"{met1['estrategia']:<40} | {met1['tiempo_ms']:>10.2f} ms | {met1['backtracks']:>12,} | {'Linea base':<10}")
+    print(f"{met2['estrategia']:<40} | {met2['tiempo_ms']:>10.2f} ms | {met2['backtracks']:>12,} | {f'-{poda_mrv:.2f}%':<10}")
+    print(f"{met3['estrategia']:<40} | {met3['tiempo_ms']:>10.2f} ms | {met3['backtracks']:>12,} | {f'-{poda_mrv:.2f}%':<10}")
+    print("=" * 75)
+
+    speedup_total = met1['tiempo_ms'] / max(met3['tiempo_ms'], 0.001)
+    print(f"FACTOR DE ACELERACION GLOBAL (Nivel 1 vs Nivel 3): {speedup_total:.1f}x mas rapido")
+    print("=" * 75)
