@@ -40,6 +40,12 @@ class ConstraintGraph:
         """
         return self.adjacency.get(node_id, set())
 
+    def has_constraint(self, node_a, node_b):
+        """
+        Indica si existe una restricción entre dos nodos.
+        """
+        return node_b in self.neighbors(node_a)
+
     def degree(self, node_id):
         """
         Devuelve la cantidad de restricciones de un nodo.
