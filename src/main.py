@@ -11,7 +11,51 @@ main_window.title(AppName + " v" + version)
 main_window.geometry("1000x1000")
 
 x = 0
+Cells = 0
+Edges = 0
+Backtracks = 0
+State = 0
+StateVal = {
+    "Solved": None
+}
 
+current_settings = {
+    "Dimension": None,
+    "Difficulty": None,
+    "Algorithm": None
+
+}
+
+def SaveSetting(*args):
+    current_settings["Dimension"] = DimensionVar.get()
+    current_settings["Difficulty"] = DifficultyVar.get()
+    current_settings["Algorithm"] = AlgorithmVar.get()
+
+    if DimensionVar.get() == "4x4 (K=2) [Small]":
+        current_settings["Dimension"] = "4x4"
+        Cells = 16
+        Edges = 56
+    elif DimensionVar.get() == "9x9 (K=3) [Classic]":
+        current_settings["Dimension"] = "9x9"
+        Cells = 81
+        Edges = 810
+    elif DimensionVar.get() == "6x16 (K=4) [Large]":
+        current_settings["Dimension"] = "16x16"
+        Cells = 256
+        Edges = 4992
+    else:
+        current_settings["Dimension"] = "error"
+        Cells = 0
+        Edges = 0
+
+def State_Val():
+    if State == 1:
+        StateVal["Solved"] = "resuelto con exito"
+    else:
+        StateVal["Solved"] = "no resuelto"
+
+GridText = "Cuadricula: " + str(current_settings["Dimension"]) + "(" + str(Cells) + " Celdas " + str(Edges) + " Aristas)"
+StateText = "Estado: Sudoku " + str(current_settings["Dimension"]) + " " + str(StateVal["Solved"])
 # main_window.lift()
 # main_window.attributes('-topmost', True)
 # main_window.after_idle(main_window.attributes, '-topmost', False)
@@ -31,39 +75,45 @@ SelectionFrame.pack(pady=10)
 DimensionFrame = Frame(SelectionFrame)
 DimensionFrame.pack(side=LEFT)
 
-Dimension = ["4x4 (K=2) [Small]", "9x9 (K=3) [Classic]", "16x16 (K=4) [Large]"]
+DimensionVal = ["4x4 (K=2) [Small]", "9x9 (K=3) [Classic]", "16x16 (K=4) [Large]"]
 DimensionVar = StringVar()
-DimensionVar.set(list(Dimension)[1])  # Set the default value
+DimensionVar.set(DimensionVal[0])
+DimensionVar.trace_add("write", lambda *args: SaveSetting())
+DimensionVar.set(list(DimensionVal)[1])  # Set the default value
 
 DimensionLabel = Label(DimensionFrame, text="Dimension:", font=("Currier Newß", 12))
 DimensionLabel.pack(side=LEFT)
-DimensionEntry = OptionMenu(DimensionFrame, DimensionVar, *Dimension)
+DimensionEntry = OptionMenu(DimensionFrame, DimensionVar, *DimensionVal)
 DimensionEntry.pack(side=LEFT)
 
 # Dificulty Selection
-DificultyFrame = Frame(SelectionFrame)
-DificultyFrame.pack(side=LEFT, padx=10)
+DifficultyFrame = Frame(SelectionFrame)
+DifficultyFrame.pack(side=LEFT, padx=10)
 
-Dificulty = ["Fácil (45% Vacio)", "Medio (60% Vacio)", "Difícil (75% Vacio)", "Experto (80% Vacio)"]
-DificultyVar = StringVar()
-DificultyVar.set(list(Dificulty)[0])  # Set the default value
+DifficultyVal = ["Fácil (45% Vacio)", "Medio (60% Vacio)", "Difícil (75% Vacio)", "Experto (80% Vacio)"]
+DifficultyVar = StringVar()
+DifficultyVar.set(DifficultyVal[0]) 
+DifficultyVar.trace_add("write", lambda *args: SaveSetting())
+DifficultyVar.set(list(DifficultyVal)[0])  # Set the default value
 
-DificultyLabel = Label(DificultyFrame, text="Dificultad:", font=("Currier Newß", 12))
-DificultyLabel.pack(side=LEFT)
-DificultyEntry = OptionMenu(DificultyFrame, DificultyVar, *Dificulty)
-DificultyEntry.pack(side=LEFT)
+DifficultyLabel = Label(DifficultyFrame, text="Dificultad:", font=("Currier Newß", 12))
+DifficultyLabel.pack(side=LEFT)
+DifficultyEntry = OptionMenu(DifficultyFrame, DifficultyVar, *DifficultyVal)
+DifficultyEntry.pack(side=LEFT)
 
 # Algorithm Selection
 AlgorithmFrame = Frame(SelectionFrame)
 AlgorithmFrame.pack(side=LEFT)
 
-Algorithm = ["Nivel 1: Básico (DFS)", "Nivel 2: MRV Clásico", "Nivel 3: MRV + Bitmasks O(1)"]
+AlgorithmVal = ["Nivel 1: Básico (DFS)", "Nivel 2: MRV Clásico", "Nivel 3: MRV + Bitmasks O(1)"]
 AlgorithmVar = StringVar()
-AlgorithmVar.set(list(Algorithm)[0])  # Set the default value
+AlgorithmVar.set(AlgorithmVal[0])
+AlgorithmVar.trace_add("write", lambda *args: SaveSetting())
+AlgorithmVar.set(list(AlgorithmVal)[0])  # Set the default value
 
 AlgorithmLabel = Label(AlgorithmFrame, text="Algoritmo:", font=("Currier Newß", 12))
 AlgorithmLabel.pack(side=LEFT)
-AlgorithmEntry = OptionMenu(AlgorithmFrame, AlgorithmVar, *Algorithm)
+AlgorithmEntry = OptionMenu(AlgorithmFrame, AlgorithmVar, *AlgorithmVal)
 AlgorithmEntry.pack(side=LEFT)
 
 # Buttons Frame
@@ -100,7 +150,7 @@ SubFrame0.pack(side=TOP)
 StateFrame = Frame(SubFrame0)
 StateFrame.pack(side=LEFT)
 
-StateLabel = Label(StateFrame, text="Estado: ", font=("Currier Newß", 12))
+StateLabel = Label(StateFrame, text=StateText, font=("Currier Newß", 12))
 StateLabel.pack()
 
 SubFrame = Frame(LeftFotterFrame)
@@ -115,14 +165,14 @@ TimeLabel.pack()
 BacktrackingFrame = Frame(SubFrame)
 BacktrackingFrame.pack(side=RIGHT)
 
-BacktrackingLabel = Label(BacktrackingFrame, text="Retrocesos(Backtracking): ", font=("Currier Newß", 12))
+BacktrackingLabel = Label(BacktrackingFrame, text="Retrocesos(Backtracking): " + Backtracks, font=("Currier Newß", 12))
 BacktrackingLabel.pack()
 
 #Right Fotter Frame
 RightFotterFrame = Frame(FotterFrame)
 RightFotterFrame.pack(side=LEFT, padx=30)
 
-GridLabel = Label(RightFotterFrame, text="Cuadricula: ", font=("Currier Newß", 12))
+GridLabel = Label(RightFotterFrame, text=GridText, font=("Currier Newß", 12))
 GridLabel.pack(side=BOTTOM)
 
 # Start the main Window
