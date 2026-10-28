@@ -26,6 +26,13 @@ current_settings = {
 
 }
 
+GridSizeVar = {None}
+GridSizeVar = StringVar()
+GridTextVar = {None}
+GridTextVar = StringVar()
+StateTextVar = {None}
+StateTextVar = StringVar()
+
 def SaveSetting(*args):
     current_settings["Dimension"] = DimensionVar.get()
     current_settings["Difficulty"] = DifficultyVar.get()
@@ -39,7 +46,7 @@ def SaveSetting(*args):
         current_settings["Dimension"] = "9x9"
         Cells = 81
         Edges = 810
-    elif DimensionVar.get() == "6x16 (K=4) [Large]":
+    elif DimensionVar.get() == "16x16 (K=4) [Large]":
         current_settings["Dimension"] = "16x16"
         Cells = 256
         Edges = 4992
@@ -48,14 +55,19 @@ def SaveSetting(*args):
         Cells = 0
         Edges = 0
 
+    GridSizeVar.set(f" {current_settings['Dimension']}")
+    GridTextVar.set(f"Cuadrícula: {GridSizeVar.get()} ({Cells} Celdas {Edges} Aristas)")
+
+    State_Val()
+
 def State_Val():
     if State == 1:
         StateVal["Solved"] = "resuelto con exito"
     else:
         StateVal["Solved"] = "no resuelto"
+    
+    StateTextVar.set(f"Estado: Sudoku {GridSizeVar.get()} {StateVal['Solved']}")
 
-GridText = "Cuadricula: " + str(current_settings["Dimension"]) + "(" + str(Cells) + " Celdas " + str(Edges) + " Aristas)"
-StateText = "Estado: Sudoku " + str(current_settings["Dimension"]) + " " + str(StateVal["Solved"])
 # main_window.lift()
 # main_window.attributes('-topmost', True)
 # main_window.after_idle(main_window.attributes, '-topmost', False)
@@ -78,7 +90,6 @@ DimensionFrame.pack(side=LEFT)
 DimensionVal = ["4x4 (K=2) [Small]", "9x9 (K=3) [Classic]", "16x16 (K=4) [Large]"]
 DimensionVar = StringVar()
 DimensionVar.set(DimensionVal[0])
-DimensionVar.trace_add("write", lambda *args: SaveSetting())
 DimensionVar.set(list(DimensionVal)[1])  # Set the default value
 
 DimensionLabel = Label(DimensionFrame, text="Dimension:", font=("Currier Newß", 12))
@@ -93,7 +104,6 @@ DifficultyFrame.pack(side=LEFT, padx=10)
 DifficultyVal = ["Fácil (45% Vacio)", "Medio (60% Vacio)", "Difícil (75% Vacio)", "Experto (80% Vacio)"]
 DifficultyVar = StringVar()
 DifficultyVar.set(DifficultyVal[0]) 
-DifficultyVar.trace_add("write", lambda *args: SaveSetting())
 DifficultyVar.set(list(DifficultyVal)[0])  # Set the default value
 
 DifficultyLabel = Label(DifficultyFrame, text="Dificultad:", font=("Currier Newß", 12))
@@ -108,13 +118,19 @@ AlgorithmFrame.pack(side=LEFT)
 AlgorithmVal = ["Nivel 1: Básico (DFS)", "Nivel 2: MRV Clásico", "Nivel 3: MRV + Bitmasks O(1)"]
 AlgorithmVar = StringVar()
 AlgorithmVar.set(AlgorithmVal[0])
-AlgorithmVar.trace_add("write", lambda *args: SaveSetting())
 AlgorithmVar.set(list(AlgorithmVal)[0])  # Set the default value
 
 AlgorithmLabel = Label(AlgorithmFrame, text="Algoritmo:", font=("Currier Newß", 12))
 AlgorithmLabel.pack(side=LEFT)
 AlgorithmEntry = OptionMenu(AlgorithmFrame, AlgorithmVar, *AlgorithmVal)
 AlgorithmEntry.pack(side=LEFT)
+
+DimensionVar.trace_add("write", lambda *args: SaveSetting())
+DifficultyVar.trace_add("write", lambda *args: SaveSetting())
+AlgorithmVar.trace_add("write", lambda *args: SaveSetting())
+
+SaveSetting()
+State_Val()
 
 # Buttons Frame
 ButtonsFrame = Frame(main_window)
@@ -150,7 +166,7 @@ SubFrame0.pack(side=TOP)
 StateFrame = Frame(SubFrame0)
 StateFrame.pack(side=LEFT)
 
-StateLabel = Label(StateFrame, text=StateText, font=("Currier Newß", 12))
+StateLabel = Label(StateFrame, textvariable=StateTextVar, font=("Currier Newß", 12))
 StateLabel.pack()
 
 SubFrame = Frame(LeftFotterFrame)
@@ -165,14 +181,14 @@ TimeLabel.pack()
 BacktrackingFrame = Frame(SubFrame)
 BacktrackingFrame.pack(side=RIGHT)
 
-BacktrackingLabel = Label(BacktrackingFrame, text="Retrocesos(Backtracking): " + Backtracks, font=("Currier Newß", 12))
+BacktrackingLabel = Label(BacktrackingFrame, text="Retrocesos(Backtracking): " + str(Backtracks), font=("Currier Newß", 12))
 BacktrackingLabel.pack()
 
 #Right Fotter Frame
 RightFotterFrame = Frame(FotterFrame)
 RightFotterFrame.pack(side=LEFT, padx=30)
 
-GridLabel = Label(RightFotterFrame, text=GridText, font=("Currier Newß", 12))
+GridLabel = Label(RightFotterFrame, textvariable=GridTextVar, font=("Currier Newß", 12))
 GridLabel.pack(side=BOTTOM)
 
 # Start the main Window
