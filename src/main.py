@@ -164,6 +164,12 @@ BoardFrame = Frame(main_window)
 BoardFrame.pack(pady=10)
 #DrawGrid()
 
+SendButtomFrame = Frame(main_window)
+SendButtomFrame.pack(side=TOP)
+
+SendButton = Button(SendButtomFrame, text="Submit", font=("Currier Newß", 12))
+SendButton.pack(side=TOP)
+
 # Fotter Frame
 FotterFrame = Frame(main_window)
 FotterFrame.pack(side=BOTTOM)
