@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import messagebox
 
 # App Info
 AppName = "Sudoku Studio"
@@ -59,6 +60,7 @@ def SaveSetting(*args):
     GridTextVar.set(f"Cuadrícula: {GridSizeVar.get()} ({Cells} Celdas {Edges} Aristas)")
 
     State_Val()
+    #DrawGrid()
 
 def State_Val():
     if State == 1:
@@ -67,6 +69,18 @@ def State_Val():
         StateVal["Solved"] = "no resuelto"
     
     StateTextVar.set(f"Estado: Sudoku {GridSizeVar.get()} {StateVal['Solved']}")
+
+def DrawGrid():
+    GridSize = GridSizeVar.get()
+    if GridSize == "4x4":
+        pass
+    elif GridSize == "9x9":
+        pass
+    elif GridSize == "16x16":
+        pass
+    else:
+        pass
+        #messagebox.showerror("Error de Dimension", "La dimension no coincide")
 
 # main_window.lift()
 # main_window.attributes('-topmost', True)
@@ -148,6 +162,7 @@ ResolveBTN.pack(side=LEFT)
 # Sudoku Board Frame
 BoardFrame = Frame(main_window)
 BoardFrame.pack(pady=10)
+#DrawGrid()
 
 # Fotter Frame
 FotterFrame = Frame(main_window)
