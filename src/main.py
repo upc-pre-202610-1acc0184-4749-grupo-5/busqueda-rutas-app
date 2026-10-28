@@ -11,11 +11,15 @@ main_window = Tk()
 main_window.title(AppName + " v" + version)
 main_window.geometry("1000x1000")
 
-x = 0
 Cells = 0
 Edges = 0
+
 Backtracks = 0
 State = 0
+
+Timer_Switch = False
+Timer = 0
+
 StateVal = {
     "Solved": None
 }
@@ -81,6 +85,24 @@ def DrawGrid():
     else:
         pass
         #messagebox.showerror("Error de Dimension", "La dimension no coincide")
+
+def Timer_Update():
+    Timer = 0
+    Timer_Switch = True
+    while(Timer_Switch == True):
+        Timer += 1
+
+def RandomBTN_Click(self):
+    Timer_Update()
+
+def CreateBTN_Click(self):
+    pass
+
+def AutoResolveBTN_Click(self):
+    Timer_Switch = False
+
+def SubmitBTN_Click(self):
+    Timer_Switch = False
 
 # main_window.lift()
 # main_window.attributes('-topmost', True)
@@ -150,13 +172,13 @@ State_Val()
 ButtonsFrame = Frame(main_window)
 ButtonsFrame.pack()
 
-RandomGenBTN = Button(ButtonsFrame, text="Generar Sudoku Aleatorio", font=("Currier Newß", 12))
+RandomGenBTN = Button(ButtonsFrame, command=RandomBTN_Click, text="Generar Sudoku Aleatorio", font=("Currier Newß", 12))
 RandomGenBTN.pack(side=LEFT)
 
-CreateBTN = Button(ButtonsFrame, text="Crear mi propio Sudoku", font=("Currier Newß", 12))
+CreateBTN = Button(ButtonsFrame, command=CreateBTN_Click, text="Crear mi propio Sudoku", font=("Currier Newß", 12))
 CreateBTN.pack(side=LEFT, padx=10)
 
-ResolveBTN = Button(ButtonsFrame, text="Resolver Sudoku Ahora", font=("Currier Newß", 12))
+ResolveBTN = Button(ButtonsFrame, command=AutoResolveBTN_Click, text="Resolver Sudoku Ahora", font=("Currier Newß", 12))
 ResolveBTN.pack(side=LEFT)
 
 # Sudoku Board Frame
@@ -167,7 +189,7 @@ BoardFrame.pack(pady=10)
 SendButtomFrame = Frame(main_window)
 SendButtomFrame.pack(side=TOP)
 
-SendButton = Button(SendButtomFrame, text="Submit", font=("Currier Newß", 12))
+SendButton = Button(SendButtomFrame, command=SubmitBTN_Click, text="Submit", font=("Currier Newß", 12))
 SendButton.pack(side=TOP)
 
 # Fotter Frame
@@ -196,7 +218,7 @@ SubFrame.pack(side=TOP)
 TimeFrame = Frame(SubFrame)
 TimeFrame.pack(side=LEFT, padx=20)
 
-TimeLabel = Label(TimeFrame, text="Tiempo: " + str(x) + " ms", font=("Currier Newß", 12))
+TimeLabel = Label(TimeFrame, text="Tiempo: " + str(Timer) + " ms", font=("Currier Newß", 12))
 TimeLabel.pack()
 
 BacktrackingFrame = Frame(SubFrame)
