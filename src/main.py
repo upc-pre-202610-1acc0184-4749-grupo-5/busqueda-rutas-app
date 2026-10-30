@@ -76,14 +76,23 @@ def State_Val():
     
     StateTextVar.set(f"Estado: Sudoku {GridSizeVar.get()} {StateVal['Solved']}")
 
+def Draw4x4Grid():
+    pass
+
+def Draw9x9Grid():
+    pass
+
+def Draw16x16Grid():
+    pass
+
 def DrawGrid():
     GridSize = GridSizeVar.get()
     if GridSize == "4x4":
-        pass
+        Draw4x4Grid()
     elif GridSize == "9x9":
-        pass
+        Draw9x9Grid()
     elif GridSize == "16x16":
-        pass
+        Draw16x16Grid()
     else:
         pass
         #messagebox.showerror("Error de Dimension", "La dimension no coincide")
