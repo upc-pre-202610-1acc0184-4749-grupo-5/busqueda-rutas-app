@@ -69,11 +69,15 @@ def SaveSetting(*args):
     #DrawGrid()
 
 def State_Val():
+    global State
     if State == 1:
         StateVal["Solved"] = "resuelto con exito"
+    elif State == 2:
+        StateVal["Solved"] = "resuelto, pero incorrecto"
     else:
+        State = 0
         StateVal["Solved"] = "no resuelto"
-    
+        
     StateTextVar.set(f"Estado: Sudoku {GridSizeVar.get()} {StateVal['Solved']}")
 
 def Draw4x4Grid():
