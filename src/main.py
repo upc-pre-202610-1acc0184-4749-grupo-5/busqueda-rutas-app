@@ -39,6 +39,8 @@ StateTextVar = {None}
 StateTextVar = StringVar()
 
 def SaveSetting(*args):
+    global Cells, Edges
+
     current_settings["Dimension"] = DimensionVar.get()
     current_settings["Difficulty"] = DifficultyVar.get()
     current_settings["Algorithm"] = AlgorithmVar.get()
@@ -87,21 +89,33 @@ def DrawGrid():
         #messagebox.showerror("Error de Dimension", "La dimension no coincide")
 
 def Timer_Update():
-    Timer = 0
-    Timer_Switch = True
-    while(Timer_Switch == True):
+    if Timer_Switch:
+        global Timer
         Timer += 1
 
-def RandomBTN_Click(self):
+        TimeLabel.config(text=f"Tiempo: {Timer} ms")
+        main_window.after(1, Timer_Update)
+
+def RandomBTN_Click():
+    global Timer_Switch, Timer
+    Timer = 0
+    Timer_Switch = True
     Timer_Update()
 
-def CreateBTN_Click(self):
+def CreateBTN_Click():
     pass
 
-def AutoResolveBTN_Click(self):
+def AutoResolveBTN_Click():
+    global Timer_Switch, Timer
+    Timer = 0
+    Timer_Switch = True
+    Timer_Update()
+    # Procediment
     Timer_Switch = False
 
-def SubmitBTN_Click(self):
+def SubmitBTN_Click():
+    global Timer_Switch
+    messagebox.askyesno("Warning", "Estas segur@ de proceder?")
     Timer_Switch = False
 
 # main_window.lift()
