@@ -115,8 +115,13 @@ def AutoResolveBTN_Click():
 
 def SubmitBTN_Click():
     global Timer_Switch
-    messagebox.askyesno("Warning", "Estas segur@ de proceder?")
-    Timer_Switch = False
+    WarningMSG = messagebox.askyesno("Warning", "Estas segur@ de proceder?")
+
+    if WarningMSG:
+        Timer_Switch = False
+    else:
+        Timer_Switch = True
+        Timer_Update()
 
 # main_window.lift()
 # main_window.attributes('-topmost', True)
