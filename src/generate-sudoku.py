@@ -36,7 +36,7 @@ def generar_grafo_sudoku_generalizado(k=7):
             # Pareja: 800 nodos (800..1599)
             # Riveros: 801 nodos (1600..2400)
             if node_id < 800:
-                integrante = "Kobashigawa Ugaz, Juan Alejandro"
+                integrante = "Kobashigawa Ugaz, Rio Ami Jinko"
             elif node_id < 1601:
                 integrante = "Pareja Calloapaza, Marcelo Fausto"
             else:
