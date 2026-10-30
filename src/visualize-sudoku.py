@@ -13,13 +13,13 @@ os.makedirs("report/assets", exist_ok=True)
 # Mapeo de colores y etiquetas de integrantes
 # Kobashigawa 800 nodos, Pareja 801 nodos, Riveros 800 nodos
 COLOR_MAP = {
-    "Kobashigawa Ugaz, Juan Alejandro": "#1F77B4",  # Azul clásico
+    "Kobashigawa Ugaz, Rio Ami Jinko": "#1F77B4",  # Azul clásico
     "Pareja Calloapaza, Marcelo Fausto": "#2CA02C", # Verde esmeralda
     "Riveros Mera, Jennifer Yamilet": "#D62728"    # Rojo carmesí
 }
 
 SHORT_NAMES = {
-    "Kobashigawa Ugaz, Juan Alejandro": "Kobashigawa Ugaz, J.: 800 nodos",
+    "Kobashigawa Ugaz, Juan Alejandro": "Kobashigawa Ugaz, R.: 800 nodos",
     "Pareja Calloapaza, Marcelo Fausto": "Pareja Calloapaza, M.: 801 nodos",
     "Riveros Mera, Jennifer Yamilet": "Riveros Mera, J.: 800 nodos"
 }
@@ -75,7 +75,7 @@ ax1.set_aspect('equal')
 # PANEL 2: Subgrafo Representativo de Intersección Multi-Integrante
 # -------------------------------------------------------------
 # Seleccionar celdas representativas que cruzan las 3 particiones y comparten aristas de restriccion mutua
-sub_koba = nodos_df[(nodos_df['integrante'] == "Kobashigawa Ugaz, Juan Alejandro") & (nodos_df['columna'].between(22, 26)) & (nodos_df['fila'].between(12, 15))]
+sub_koba = nodos_df[(nodos_df['integrante'] == "Kobashigawa Ugaz, Rio Ami Jinko") & (nodos_df['columna'].between(22, 26)) & (nodos_df['fila'].between(12, 15))]
 sub_pareja = nodos_df[(nodos_df['integrante'] == "Pareja Calloapaza, Marcelo Fausto") & (nodos_df['columna'].between(22, 26)) & (nodos_df['fila'].between(17, 20))]
 sub_riveros = nodos_df[(nodos_df['integrante'] == "Riveros Mera, Jennifer Yamilet") & (nodos_df['columna'].between(22, 26)) & (nodos_df['fila'].between(33, 36))]
 
