@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import messagebox
+import tkinter as tk
 
 # App Info
 AppName = "Sudoku Studio"
@@ -38,8 +39,10 @@ GridTextVar = StringVar()
 StateTextVar = {None}
 StateTextVar = StringVar()
 
+BoardFrame  = None
+
 def SaveSetting(*args):
-    global Cells, Edges
+    global Cells, Edges, BoardFrame
 
     current_settings["Dimension"] = DimensionVar.get()
     current_settings["Difficulty"] = DifficultyVar.get()
@@ -66,40 +69,90 @@ def SaveSetting(*args):
     GridTextVar.set(f"Cuadrícula: {GridSizeVar.get()} ({Cells} Celdas {Edges} Aristas)")
 
     State_Val()
-    #DrawGrid()
+
+    if BoardFrame is not None:
+        DrawGrid(BoardFrame, GridSizeVar.get())
 
 def State_Val():
     global State
     if State == 1:
         StateVal["Solved"] = "resuelto con exito"
-    elif State == 2:
-        StateVal["Solved"] = "resuelto, pero incorrecto"
     else:
         State = 0
         StateVal["Solved"] = "no resuelto"
         
     StateTextVar.set(f"Estado: Sudoku {GridSizeVar.get()} {StateVal['Solved']}")
 
-def Draw4x4Grid():
-    pass
+def DrawGrid_in_Frame(Frame_Container, size):
+    for widget in Frame_Container.winfo_children():
+        widget.destroy()
 
-def Draw9x9Grid():
-    pass
+    sub_size = int(size**0.5)
+    entries = {}
 
-def Draw16x16Grid():
-    pass
+    if size == 16:
+        font_size = 9      
+        entry_width = 2    
+        pad_space = 0      
+    elif size == 9:
+        font_size = 11
+        entry_width = 2
+        pad_space = 1
+    else: 
+        font_size = 11
+        entry_width = 2
+        pad_space = 2
 
-def DrawGrid():
+    outer_frame = tk.Frame(Frame_Container, bg="white", bd=2)
+    outer_frame.pack(padx=2, pady=2)
+
+    board_inner_frame = tk.Frame(outer_frame, bg="black", bd=2)
+    board_inner_frame.pack(padx=1, pady=1)
+
+    boxes = {}
+    for br in range(sub_size):
+        for bc in range(sub_size):
+            box = tk.Frame(board_inner_frame, bg="black", bd=1)
+            box.grid(row=br, column=bc, padx=pad_space, pady=pad_space)
+            boxes[(br, bc)] = box
+
+    for r in range(size):
+        for c in range(size):
+            br, bc = r // sub_size, c // sub_size
+            lr, lc = r % sub_size, c % sub_size
+
+            entry = tk.Entry(
+                boxes[(br, bc)], 
+                width=entry_width, 
+                font=("Arial", font_size, "bold"), 
+                justify="center",
+                bg="white",
+                fg="black",
+                relief="flat"
+            )
+            
+            entry.grid(row=lr, column=lc, padx=1, pady=1)
+            entries[(r, c)] = entry
+
+def Draw4x4Grid(Frame):
+    DrawGrid_in_Frame(Frame, 4)
+
+def Draw9x9Grid(Frame):
+    DrawGrid_in_Frame(Frame, 9)
+
+def Draw16x16Grid(Frame):
+    DrawGrid_in_Frame(Frame, 16)
+
+def DrawGrid(Frame, GridSize):
     GridSize = GridSizeVar.get()
-    if GridSize == "4x4":
-        Draw4x4Grid()
-    elif GridSize == "9x9":
-        Draw9x9Grid()
-    elif GridSize == "16x16":
-        Draw16x16Grid()
+    if "4x4" in GridSize:
+        Draw4x4Grid(Frame)
+    elif "9x9" in GridSize:
+        Draw9x9Grid(Frame)
+    elif "16x16" in GridSize:
+        Draw16x16Grid(Frame)
     else:
-        pass
-        #messagebox.showerror("Error de Dimension", "La dimension no coincide")
+        messagebox.showerror("Error de Dimension", "La dimension no coincide")
 
 def Timer_Update():
     if Timer_Switch:
@@ -162,7 +215,7 @@ DimensionVar.set(list(DimensionVal)[1])  # Set the default value
 
 DimensionLabel = Label(DimensionFrame, text="Dimension:", font=("Currier Newß", 12))
 DimensionLabel.pack(side=LEFT)
-DimensionEntry = OptionMenu(DimensionFrame, DimensionVar, *DimensionVal)
+DimensionEntry = OptionMenu(DimensionFrame, DimensionVar, *DimensionVal, command=SaveSetting)
 DimensionEntry.pack(side=LEFT)
 
 # Dificulty Selection
@@ -216,7 +269,7 @@ ResolveBTN.pack(side=LEFT)
 # Sudoku Board Frame
 BoardFrame = Frame(main_window)
 BoardFrame.pack(pady=10)
-#DrawGrid()
+DrawGrid(BoardFrame, GridSizeVar.get())
 
 SendButtomFrame = Frame(main_window)
 SendButtomFrame.pack(side=TOP)
