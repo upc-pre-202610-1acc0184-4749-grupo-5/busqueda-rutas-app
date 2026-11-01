@@ -457,16 +457,26 @@ def Timer_Update():
 
 def RandomBTN_Click():
     set_values(entries)
-    global Timer_Switch, Timer
+    global Timer_Switch, Timer, State
+    State = 0
+    State_Val()
     Timer = 0
     Timer_Switch = True
     Timer_Update()
 
 def CreateBTN_Click():
-    pass
+    global Timer_Switch, Timer, State
+    State = 0
+    State_Val()
+    #procediment
+    Timer = 0
+    Timer_Switch = True
+    Timer_Update()
 
 def AutoResolveBTN_Click():
-    global Timer_Switch, Timer
+    global Timer_Switch, Timer, State
+    State = 0
+    State_Val()
     Timer = 0
     Timer_Switch = True
     Timer_Update()
