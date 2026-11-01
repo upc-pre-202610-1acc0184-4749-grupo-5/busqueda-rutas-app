@@ -457,7 +457,9 @@ def Timer_Update():
 
 def RandomBTN_Click():
     set_values(entries)
-    global Timer_Switch, Timer, State
+    global Timer_Switch, Timer, State, Backtracks
+    Backtracks = 0
+    BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
     State = 0
     State_Val()
     Timer = 0
@@ -465,7 +467,9 @@ def RandomBTN_Click():
     Timer_Update()
 
 def CreateBTN_Click():
-    global Timer_Switch, Timer, State
+    global Timer_Switch, Timer, State, Backtracks
+    Backtracks = 0
+    BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
     State = 0
     State_Val()
     #procediment
@@ -474,7 +478,9 @@ def CreateBTN_Click():
     Timer_Update()
 
 def AutoResolveBTN_Click():
-    global Timer_Switch, Timer, State
+    global Timer_Switch, Timer, State, Backtracks
+    Backtracks = 0
+    BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
     State = 0
     State_Val()
     Timer = 0
