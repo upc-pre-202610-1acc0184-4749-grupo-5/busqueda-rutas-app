@@ -4,6 +4,9 @@ import tkinter as tk
 import random
 import pandas as pd
 import os
+import sys
+
+from solver import SudokuSolver
 
 # App Info
 AppName = "Sudoku Studio"
@@ -41,6 +44,8 @@ GridTextVar = {None}
 GridTextVar = StringVar()
 StateTextVar = {None}
 StateTextVar = StringVar()
+
+BacktrackingTextVar = StringVar()
 
 BoardFrame  = None
 
@@ -341,6 +346,107 @@ def validate_sudoku_solution():
     print(f"Nuevo valor de State asignado: {State}")
     State_Val()
 
+def read_current_board_from_gui(size):
+    """
+    Reads the current values from the GUI entry widgets 
+    and builds a 2D matrix representing the board.
+    """
+    board = [[0] * size for _ in range(size)]
+    for r in range(size):
+        for c in range(size):
+            entry = entries.get((r, c))
+            if entry:
+                val_str = entry.get().strip()
+                if val_str.isdigit():
+                    board[r][c] = int(val_str)
+                else:
+                    board[r][c] = 0
+    return board
+
+def update_gui_with_solved_board(board, size):
+    """
+    Updates the GUI entry widgets with the solved board matrix 
+    and locks them or marks them appropriately.
+    """
+    for r in range(size):
+        for c in range(size):
+            entry = entries.get((r, c))
+            if entry:
+                # Enable temporarily to insert value
+                entry.config(state="normal")
+                entry.delete(0, tk.END)
+                value = board[r][c]
+                if value != 0:
+                    entry.insert(0, str(value))
+                    # Lock resolved cells as readonly
+                    entry.config(state="readonly", readonlybackground="white", fg="black")
+                else:
+                    entry.config(state="normal", bg="white", fg="black")
+
+def solve_sudoku_from_interface():
+    """
+    Solves the Sudoku using the selected algorithm from solver.py,
+    updates global telemetry variables (Backtracks, Timer, State),
+    and redraws the solution on the screen.
+    """
+    global State, Backtracks  
+    
+    grid_size_str = GridSizeVar.get()
+    if "4x4" in grid_size_str:
+        size = 4
+        k = 2
+    elif "9x9" in grid_size_str:
+        size = 9
+        k = 3
+    elif "16x16" in grid_size_str:
+        size = 16
+        k = 4
+    else:
+        size = 9
+        k = 3
+
+    current_board = read_current_board_from_gui(size)
+    solver = SudokuSolver(current_board, k=k)
+    selected_algorithm = AlgorithmVar.get() if 'AlgorithmVar' in globals() else "Nivel 1"
+
+    if "Nivel 1" in selected_algorithm or "Básico" in selected_algorithm:
+        success, solved_board, metrics = solver.resolver_basico()
+    elif "Nivel 2" in selected_algorithm or "MRV Clásica" in selected_algorithm:
+        success, solved_board, metrics = solver.resolver_mrv_clasico()
+    elif "Nivel 3" in selected_algorithm or "Bitmasks" in selected_algorithm:
+        success, solved_board, metrics = solver.resolver_mrv_bitmasks()
+    else:
+        success, solved_board, metrics = solver.resolver_mrv_bitmasks()
+
+    # Actualizar métricas globales de rendimiento
+    Backtracks = metrics["backtracks"]
+    execution_time_ms = metrics["tiempo_ms"]
+
+    if 'Timer_Switch' in globals():
+        global Timer_Switch
+        Timer_Switch = False  
+
+    # Actualizar texto del Timer en la interfaz
+    if 'TimeLabel' in globals():
+        TimeLabel.config(text=f"Tiempo: {execution_time_ms:.2f} ms")
+
+    # Actualizar texto de Backtracks correctamente usando StringVar
+    BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks:,}")
+
+    if success:
+        State = 1  
+    else:
+        State = 2  
+
+    if success:
+        update_gui_with_solved_board(solved_board, size)
+
+    if 'State_Val' in globals():
+        State_Val()
+
+    print(f"Solver executed via {metrics['estrategia']}. Success: {success}, Time: {execution_time_ms} ms, Backtracks: {Backtracks}")
+    return success, metrics
+
 def Timer_Update():
     if Timer_Switch:
         global Timer
@@ -364,7 +470,7 @@ def AutoResolveBTN_Click():
     Timer = 0
     Timer_Switch = True
     Timer_Update()
-    # Procediment
+    solve_sudoku_from_interface()
     Timer_Switch = False
 
 def SubmitBTN_Click():
@@ -498,7 +604,8 @@ TimeLabel.pack()
 BacktrackingFrame = Frame(SubFrame)
 BacktrackingFrame.pack(side=RIGHT)
 
-BacktrackingLabel = Label(BacktrackingFrame, text="Retrocesos(Backtracking): " + str(Backtracks), font=("Currier Newß", 12))
+BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
+BacktrackingLabel = Label(BacktrackingFrame, textvariable=BacktrackingTextVar, font=("Currier Newß", 12))
 BacktrackingLabel.pack()
 
 #Right Fotter Frame
