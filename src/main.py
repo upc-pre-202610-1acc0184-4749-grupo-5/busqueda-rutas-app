@@ -191,24 +191,19 @@ def fill_cells_by_percentage(size, entries, board_solution, fill_percentage):
             if entry is None:
                 continue
                 
-            # Clear cell first
+            # 1. Habilitar la celda PRIMERO para evitar errores de solo lectura
+            entry.config(state="normal", fg="black", bg="white")
+            # 2. Borrar el contenido anterior de forma segura
             entry.delete(0, tk.END)
-            entry.config(state="normal", fg="black")
             
             if (r, c) in clue_positions:
                 value = str(board_solution[r][c])
                 entry.insert(0, value)
-                if (r, c) in clue_positions:
-                    value = str(board_solution[r][c])
-                    entry.config(state="normal") # Permitir modificar temporalmente
-                    entry.delete(0, tk.END)
-                    entry.insert(0, value)
-                    # Bloquear celda y forzar el fondo blanco con texto negro
-                    entry.config(state="readonly", readonlybackground="white", fg="black")
-                else:
-                    entry.config(state="normal", bg="white", fg="black")
+                # Bloquear celda pista como readonly
+                entry.config(state="readonly", readonlybackground="white", fg="black")
             else:
-                pass
+                # Celdas vacías listas para que el usuario escriba
+                entry.config(state="normal", bg="white", fg="black")
 
 def set_values_easy(size, entries, board_solution):
     fill_cells_by_percentage(size, entries, board_solution, fill_percentage=0.55)
@@ -224,17 +219,47 @@ def set_values_expert(size, entries, board_solution):
 
 def generate_valid_base_board(size):
     """
-    Generates a valid solved base board matrix for the given size 
-    using a standard mathematical shift pattern for N x N Sudoku.
+    Generates a randomized valid solved base board matrix for the given size 
+    by shuffling rows, columns, and numbers while preserving Sudoku constraints.
     """
     sub_size = int(size ** 0.5)
-    board = [[0] * size for _ in range(size)]
     
-    # Valid base pattern generation for generalized Sudoku
+    board = [[0] * size for _ in range(size)]
     for r in range(size):
         for c in range(size):
             board[r][c] = (sub_size * (r % sub_size) + r // sub_size + c) % size + 1
-            
+
+    nums = list(range(1, size + 1))
+    random.shuffle(nums)
+    board = [[nums[val - 1] for val in row] for row in board]
+
+    for b in range(sub_size):
+        row_indices = list(range(b * sub_size, (b + 1) * sub_size))
+        random.shuffle(row_indices)
+        board = [board[i] for i in row_indices] + [board[i] for i in range(len(board)) if i not in row_indices]
+
+    def shuffle_bands(b):
+        nonlocal board
+        for blk in range(sub_size):
+            start = blk * sub_size
+            band = board[start:start+sub_size]
+            random.shuffle(band)
+            board[start:start+sub_size] = band
+
+    shuffle_bands(sub_size)
+    
+    def shuffle_stacks(b):
+        nonlocal board
+        for blk in range(sub_size):
+            start = blk * sub_size
+            transposed = [list(x) for x in zip(*board)]
+            stack = transposed[start:start+sub_size]
+            random.shuffle(stack)
+            transposed[start:start+sub_size] = stack
+            board = [list(x) for x in zip(*transposed)]
+
+    shuffle_stacks(sub_size)
+
     return board
 
 def set_values(entries):
