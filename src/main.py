@@ -1,6 +1,9 @@
 from tkinter import *
 from tkinter import messagebox
 import tkinter as tk
+import random
+import pandas as pd
+import os
 
 # App Info
 AppName = "Sudoku Studio"
@@ -41,6 +44,8 @@ StateTextVar = StringVar()
 
 BoardFrame  = None
 
+entries = {}
+
 def SaveSetting(*args):
     global Cells, Edges, BoardFrame
 
@@ -77,6 +82,8 @@ def State_Val():
     global State
     if State == 1:
         StateVal["Solved"] = "resuelto con exito"
+    elif State == 2:
+        StateVal["Solved"] = "resuelto, pero incorrecto"
     else:
         State = 0
         StateVal["Solved"] = "no resuelto"
@@ -84,21 +91,25 @@ def State_Val():
     StateTextVar.set(f"Estado: Sudoku {GridSizeVar.get()} {StateVal['Solved']}")
 
 def DrawGrid_in_Frame(Frame_Container, size):
+    global entries
+    
+    # 1. Limpiar cualquier cuadrícula anterior
     for widget in Frame_Container.winfo_children():
         widget.destroy()
+        
+    entries.clear()
 
     sub_size = int(size**0.5)
-    entries = {}
 
     if size == 16:
-        font_size = 9      
-        entry_width = 2    
-        pad_space = 0      
+        font_size = 9
+        entry_width = 2
+        pad_space = 0
     elif size == 9:
         font_size = 11
         entry_width = 2
         pad_space = 1
-    else: 
+    else: # 4x4
         font_size = 11
         entry_width = 2
         pad_space = 2
@@ -106,6 +117,7 @@ def DrawGrid_in_Frame(Frame_Container, size):
     outer_frame = tk.Frame(Frame_Container, bg="white", bd=2)
     outer_frame.pack(padx=2, pady=2)
 
+    # 3. Marco interno con fondo negro para las líneas gruesas de los bloques
     board_inner_frame = tk.Frame(outer_frame, bg="black", bd=2)
     board_inner_frame.pack(padx=1, pady=1)
 
@@ -126,8 +138,9 @@ def DrawGrid_in_Frame(Frame_Container, size):
                 width=entry_width, 
                 font=("Arial", font_size, "bold"), 
                 justify="center",
-                bg="white",
-                fg="black",
+                bg="white",      
+                fg="black",      
+                insertbackground="black",
                 relief="flat"
             )
             
@@ -154,6 +167,119 @@ def DrawGrid(Frame, GridSize):
     else:
         messagebox.showerror("Error de Dimension", "La dimension no coincide")
 
+def fill_cells_by_percentage(size, entries, board_solution, fill_percentage):
+    """
+    Randomly fills the initial clues based on difficulty percentage
+    and updates both the GUI entries and the grid graph/model.
+    """
+    total_cells = size * size
+    num_clues = int(total_cells * fill_percentage)
+    
+    all_positions = [(r, c) for r in range(size) for c in range(size)]
+    clue_positions = set(random.sample(all_positions, num_clues))
+    
+    for r in range(size):
+        for c in range(size):
+            entry = entries.get((r, c))
+            if entry is None:
+                continue
+                
+            # Clear cell first
+            entry.delete(0, tk.END)
+            entry.config(state="normal", fg="black")
+            
+            if (r, c) in clue_positions:
+                value = str(board_solution[r][c])
+                entry.insert(0, value)
+                if (r, c) in clue_positions:
+                    value = str(board_solution[r][c])
+                    entry.config(state="normal") # Permitir modificar temporalmente
+                    entry.delete(0, tk.END)
+                    entry.insert(0, value)
+                    # Bloquear celda y forzar el fondo blanco con texto negro
+                    entry.config(state="readonly", readonlybackground="white", fg="black")
+                else:
+                    entry.config(state="normal", bg="white", fg="black")
+            else:
+                pass
+
+def set_values_easy(size, entries, board_solution):
+    fill_cells_by_percentage(size, entries, board_solution, fill_percentage=0.55)
+
+def set_values_medium(size, entries, board_solution):
+    fill_cells_by_percentage(size, entries, board_solution, fill_percentage=0.40)
+
+def set_values_hard(size, entries, board_solution):
+    fill_cells_by_percentage(size, entries, board_solution, fill_percentage=0.25)
+
+def set_values_expert(size, entries, board_solution):
+    fill_cells_by_percentage(size, entries, board_solution, fill_percentage=0.20)
+
+def generate_valid_base_board(size):
+    """
+    Generates a valid solved base board matrix for the given size 
+    using a standard mathematical shift pattern for N x N Sudoku.
+    """
+    sub_size = int(size ** 0.5)
+    board = [[0] * size for _ in range(size)]
+    
+    # Valid base pattern generation for generalized Sudoku
+    for r in range(size):
+        for c in range(size):
+            board[r][c] = (sub_size * (r % sub_size) + r // sub_size + c) % size + 1
+            
+    return board
+
+def set_values(entries):
+    """
+    Master function that reads the difficulty, determines grid size (k),
+    reads nodes/edges datasets, and populates the grid.
+    """
+    # 1. Get current grid size from interface settings
+    grid_size_str = GridSizeVar.get()
+    if "4x4" in grid_size_str:
+        size = 4
+        k = 2
+    elif "9x9" in grid_size_str:
+        size = 9
+        k = 3
+    elif "16x16" in grid_size_str:
+        size = 16
+        k = 4
+    else:
+        size = 9
+        k = 3
+
+    # 2. Read dataset files (sudoku_nodes.csv and sudoku_edges.csv)
+    nodes_path = "dataset/sudoku_nodes.csv"
+    edges_path = "dataset/sudoku_edges.csv"
+    
+    if os.path.exists(nodes_path) and os.path.exists(edges_path):
+        nodes_df = pd.read_csv(nodes_path)
+        edges_df = pd.read_csv(edges_path)
+        print(f"Dataset loaded: {len(nodes_df)} nodes and {len(edges_df)} edges found for k={k}.")
+    else:
+        print("Warning: Dataset CSV files not found. Ensure the graph generator has run.")
+
+    # 3. Get current difficulty level
+    difficulty = DifficultyVar.get()
+
+    # 4. Generate or fetch a valid board solution matrix for the given size
+    # (You can map this to your base solution generator function)
+    board_solution = generate_valid_base_board(size) 
+
+    # 5. Route to the correct difficulty setter function based on percentages
+    if "Fácil (45% Vacio)" in difficulty:
+        set_values_easy(size, entries, board_solution)
+    elif "Medio (60% Vacio)" in difficulty:
+        set_values_medium(size, entries, board_solution)
+    elif "Difícil (75% Vacio)" in difficulty:
+        set_values_hard(size, entries, board_solution)
+    elif "Experto (80% Vacio)" in difficulty:
+        set_values_expert(size, entries, board_solution)
+    else:
+        set_values_easy(size, entries, board_solution)
+
 def Timer_Update():
     if Timer_Switch:
         global Timer
@@ -163,6 +289,7 @@ def Timer_Update():
         main_window.after(1, Timer_Update)
 
 def RandomBTN_Click():
+    set_values(entries)
     global Timer_Switch, Timer
     Timer = 0
     Timer_Switch = True
