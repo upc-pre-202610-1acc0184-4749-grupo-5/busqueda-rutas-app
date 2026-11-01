@@ -472,6 +472,172 @@ def solve_sudoku_from_interface():
     print(f"Solver executed via {metrics['estrategia']}. Success: {success}, Time: {execution_time_ms} ms, Backtracks: {Backtracks}")
     return success, metrics
 
+def open_custom_sudoku_window():
+    """
+    Opens a new Toplevel window containing an empty grid for the user 
+    to input their own custom puzzle. Validates row/column constraints 
+    before copying valid entries to the main board.
+    """
+    global entries, GridSizeVar
+    
+    # 1. Determine current grid size
+    grid_size_str = GridSizeVar.get()
+    if "4x4" in grid_size_str:
+        size = 4
+    elif "9x9" in grid_size_str:
+        size = 9
+    elif "16x16" in grid_size_str:
+        size = 16
+    else:
+        size = 9
+
+    sub_size = int(size**0.5)
+
+    # 2. Create Toplevel Window
+    custom_window = tk.Toplevel(main_window)
+    custom_window.title("Crear mi propio Sudoku")
+    custom_window.geometry("500x550")
+    custom_window.config(bg="white")
+
+    title_label = Label(custom_window, text="Diseña tu propio Sudoku", font=("Arial", 12, "bold"), bg="white")
+    title_label.pack(pady=10)
+
+    # 3. Frame container for the custom grid
+    custom_frame = tk.Frame(custom_window, bg="white")
+    custom_frame.pack(pady=5)
+
+    custom_entries = {}
+
+    # Rendering the empty grid inside the new window
+    outer_frame = tk.Frame(custom_frame, bg="white", bd=2)
+    outer_frame.pack(padx=2, pady=2)
+
+    board_inner_frame = tk.Frame(outer_frame, bg="black", bd=2)
+    board_inner_frame.pack(padx=1, pady=1)
+
+    boxes = {}
+    for br in range(sub_size):
+        for bc in range(sub_size):
+            box = tk.Frame(board_inner_frame, bg="black", bd=1)
+            box.grid(row=br, column=bc, padx=1, pady=1)
+            boxes[(br, bc)] = box
+
+    for r in range(size):
+        for c in range(size):
+            br, bc = r // sub_size, c // sub_size
+            lr, lc = r % sub_size, c % sub_size
+
+            entry = tk.Entry(
+                boxes[(br, bc)], 
+                width=2, 
+                font=("Arial", 11, "bold"), 
+                justify="center",
+                bg="white",      
+                fg="black",      
+                insertbackground="black",
+                relief="flat"
+            )
+            entry.grid(row=lr, column=lc, padx=1, pady=1)
+            custom_entries[(r, c)] = entry
+
+    def validate_and_transfer():
+        """
+        Validates that no two identical numbers exist in the same row or column.
+        If valid, copies the custom puzzle into the main window's grid.
+        """
+        global Timer, Timer_Switch
+
+        board_values = [[0] * size for _ in range(size)]
+        
+        # Read custom values from inputs
+        for r in range(size):
+            for c in range(size):
+                val_str = custom_entries[(r, c)].get().strip()
+                if val_str.isdigit():
+                    board_values[r][c] = int(val_str)
+                else:
+                    board_values[r][c] = 0
+
+        # Check row and column constraints for duplicates
+        has_duplicates = False
+
+        # 1. Check rows
+        for r in range(size):
+            seen = set()
+            for c in range(size):
+                val = board_values[r][c]
+                if val != 0:
+                    if val in seen:
+                        has_duplicates = True
+                        break
+                    seen.add(val)
+            if has_duplicates:
+                break
+
+        # 2. Check columns
+        if not has_duplicates:
+            for c in range(size):
+                seen = set()
+                for r in range(size):
+                    val = board_values[r][c]
+                    if val != 0:
+                        if val in seen:
+                            has_duplicates = True
+                            break
+                        seen.add(val)
+                if has_duplicates:
+                    break
+
+        # If duplicate found, show warning and abort transfer
+        if has_duplicates:
+            messagebox.showwarning(
+                "Error de Restricción", 
+                "¡Existen números iguales en la misma fila y/o columna! Corrige los valores para continuar.", 
+                parent=custom_window
+            )
+            return
+
+        # If valid, copy numbers to the main grid entries and lock them as initial clues
+        for r in range(size):
+            for c in range(size):
+                val = board_values[r][c]
+                main_entry = entries.get((r, c))
+                if main_entry:
+                    main_entry.config(state="normal")
+                    main_entry.delete(0, tk.END)
+                    if val != 0:
+                        main_entry.insert(0, str(val))
+                        main_entry.config(state="readonly", readonlybackground="white", fg="black")
+                    else:
+                        main_entry.config(state="normal", bg="white", fg="black")
+
+        messagebox.showinfo("Éxito", "¡Sudoku personalizado cargado e insertado en el tablero principal!", parent=custom_window)
+        Timer = 0
+        Timer_Switch = True
+        Timer_Update()
+        custom_window.destroy()
+
+    # 4. Button inside the custom window
+    submit_custom_btn = Button(
+        custom_window, 
+        text="Validar y Cargar al Tablero Principal", 
+        command=validate_and_transfer, 
+        font=("Arial", 11, "bold"),
+        bg="#f0f0f0"
+    )
+    submit_custom_btn.pack(pady=15)
+
+    def on_close():
+        global Timer_Switch, Timer
+        Timer_Switch = False
+        messagebox.showwarning(
+            "Ventana Activa", 
+            "Debes completar, validar y cargar tu Sudoku con almenos un numero o usar el botón correspondiente. No puedes cerrar esta ventana directamente.", 
+            parent=custom_window
+        )
+
+    custom_window.protocol("WM_DELETE_WINDOW", on_close)
+
 def Timer_Update():
     if Timer_Switch:
         global Timer
@@ -493,14 +659,14 @@ def RandomBTN_Click():
 
 def CreateBTN_Click():
     global Timer_Switch, Timer, State, Backtracks
+    Timer_Switch = False
     Backtracks = 0
     BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
     State = 0
     State_Val()
-    #procediment
-    Timer = 0
-    Timer_Switch = True
-    Timer_Update()
+    
+    open_custom_sudoku_window()
+ 
 
 def AutoResolveBTN_Click():
     global Timer_Switch, Timer, State, Backtracks
