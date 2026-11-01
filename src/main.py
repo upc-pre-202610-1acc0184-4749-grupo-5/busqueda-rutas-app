@@ -84,6 +84,8 @@ def State_Val():
         StateVal["Solved"] = "resuelto con exito"
     elif State == 2:
         StateVal["Solved"] = "resuelto, pero incorrecto"
+    elif State == 0:
+        StateVal["Solved"] = "no resuelto"
     else:
         State = 0
         StateVal["Solved"] = "no resuelto"
@@ -251,9 +253,9 @@ def set_values(entries):
         k = 3
 
     # 2. Read dataset files (sudoku_nodes.csv and sudoku_edges.csv)
-    nodes_path = "dataset/sudoku_nodes.csv"
-    edges_path = "dataset/sudoku_edges.csv"
-    
+    nodes_path = "../dataset/sudoku_nodes.csv"
+    edges_path = "../dataset/sudoku_edges.csv"
+
     if os.path.exists(nodes_path) and os.path.exists(edges_path):
         nodes_df = pd.read_csv(nodes_path)
         edges_df = pd.read_csv(edges_path)
@@ -279,6 +281,65 @@ def set_values(entries):
         set_values_expert(size, entries, board_solution)
     else:
         set_values_easy(size, entries, board_solution)
+
+def validate_sudoku_solution():
+    global State
+    print("--- Executing validate_sudoku_solution ---")
+    
+    grid_size_str = GridSizeVar.get()
+    if "4x4" in grid_size_str:
+        size = 4
+    elif "9x9" in grid_size_str:
+        size = 9
+    elif "16x16" in grid_size_str:
+        size = 16
+    else:
+        size = 9
+
+    N = size
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    edges_path = os.path.join(current_dir, "../dataset/sudoku_edges.csv")
+    
+    if not os.path.exists(edges_path):
+        print(f"Error: The file does not exist at {edges_path}")
+        return
+
+    edges_df = pd.read_csv(edges_path)
+    print(f"Edges Loaded: {len(edges_df)}")
+
+    board_values = {}
+    for r in range(size):
+        for c in range(size):
+            node_id = r * N + c
+            entry = entries.get((r, c))
+            val_str = entry.get().strip() if entry else ""
+            if val_str.isdigit():
+                board_values[node_id] = int(val_str)
+            else:
+                board_values[node_id] = None
+
+    is_valid = True
+    for _, row in edges_df.iterrows():
+        u = int(row['origen'])
+        v = int(row['destino'])
+        
+        if u in board_values and v in board_values:
+            val_u = board_values.get(u)
+            val_v = board_values.get(v)
+            
+            if val_u is None or val_v is None or val_u == val_v:
+                is_valid = False
+                break
+
+    print(f"Resultado de la validación (is_valid): {is_valid}")
+
+    if is_valid:
+        State = 1  # Solved correctly
+    else:
+        State = 2  # Solved incorrectly
+
+    print(f"Nuevo valor de State asignado: {State}")
+    State_Val()
 
 def Timer_Update():
     if Timer_Switch:
@@ -307,6 +368,7 @@ def AutoResolveBTN_Click():
     Timer_Switch = False
 
 def SubmitBTN_Click():
+    validate_sudoku_solution()
     global Timer_Switch
     WarningMSG = messagebox.askyesno("Warning", "Estas segur@ de proceder?")
 
@@ -401,7 +463,7 @@ DrawGrid(BoardFrame, GridSizeVar.get())
 SendButtomFrame = Frame(main_window)
 SendButtomFrame.pack(side=TOP)
 
-SendButton = Button(SendButtomFrame, command=SubmitBTN_Click, text="Submit", font=("Currier Newß", 12))
+SendButton = Button(SendButtomFrame, text="Submit", command=SubmitBTN_Click, font=("Currier Newß", 12))
 SendButton.pack(side=TOP)
 
 # Fotter Frame
