@@ -549,6 +549,26 @@ def open_custom_sudoku_window():
 
         board_values = [[0] * size for _ in range(size)]
         
+        has_at_least_one = False 
+        
+        for r in range(size):
+            for c in range(size):
+                val_str = custom_entries[(r, c)].get().strip()
+                if val_str.isdigit() and int(val_str) > 0:
+                    board_values[r][c] = int(val_str)
+                    has_at_least_one = True
+                else:
+                    board_values[r][c] = 0
+
+        # The Grid must have at least one number to be valid
+        if not has_at_least_one:
+            messagebox.showwarning(
+                "Tablero Vacío", 
+                "Debes ingresar al menos un número en el tablero para poder validarlo y cargarlo.", 
+                parent=custom_window
+            )
+            return
+        
         # Read custom values from inputs
         for r in range(size):
             for c in range(size):
@@ -596,7 +616,7 @@ def open_custom_sudoku_window():
                 parent=custom_window
             )
             return
-
+        
         # If valid, copy numbers to the main grid entries and lock them as initial clues
         for r in range(size):
             for c in range(size):
