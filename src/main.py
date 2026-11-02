@@ -543,7 +543,7 @@ def open_custom_sudoku_window():
     # 2. Create Toplevel Window
     custom_window = tk.Toplevel(main_window)
     custom_window.title("Crear mi propio Sudoku")
-    custom_window.geometry("500x550")
+    custom_window.geometry("650x650")
     custom_window.config(bg="white")
 
     title_label = Label(custom_window, text="Diseña tu propio Sudoku", font=("Arial", 12, "bold"), bg="white")
