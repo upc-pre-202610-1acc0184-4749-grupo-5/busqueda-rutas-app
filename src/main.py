@@ -340,6 +340,8 @@ def validate_sudoku_solution():
     print(f"Edges Loaded: {len(edges_df)}")
 
     board_values = {}
+    is_incomplete = False
+
     for r in range(size):
         for c in range(size):
             node_id = r * N + c
@@ -347,9 +349,15 @@ def validate_sudoku_solution():
             val_str = entry.get().strip() if entry else ""
             if val_str.isdigit():
                 board_values[node_id] = int(val_str)
+                if val_str == "0":
+                    is_incomplete = True
             else:
                 board_values[node_id] = None
-
+                is_incomplete = True
+    if is_incomplete:
+        messagebox.showwarning("Tablero Incompleto", "El Sudoku no está completo. Rellena todas las celdas antes de enviar.")
+        return
+    
     is_valid = True
     for _, row in edges_df.iterrows():
         u = int(row['origen'])
