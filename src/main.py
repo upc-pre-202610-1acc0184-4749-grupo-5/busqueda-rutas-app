@@ -672,7 +672,7 @@ def open_custom_sudoku_window():
                 else:
                     board_values[r][c] = 0
 
-        # Check row and column constraints for duplicates
+        # Check row, column, and subgrid constraints for duplicates
         has_duplicates = False
 
         # 1. Check rows
@@ -701,12 +701,31 @@ def open_custom_sudoku_window():
                         seen.add(val)
                 if has_duplicates:
                     break
-
+        # 3. Check subgrids
+        if not has_duplicates:
+            for br in range(sub_size):
+                for bc in range(sub_size):
+                    seen = set()
+                    for lr in range(sub_size):
+                        for lc in range(sub_size):
+                            r = br * sub_size + lr
+                            c = bc * sub_size + lc
+                            val = board_values[r][c]
+                            if val != 0:
+                                if val in seen:
+                                    has_duplicates = True
+                                    break
+                                seen.add(val)
+                        if has_duplicates:
+                            break
+                    if has_duplicates:
+                        break
+                    
         # If duplicate found, show warning and abort transfer
         if has_duplicates:
             messagebox.showwarning(
                 "Error de Restricción", 
-                "¡Existen números iguales en la misma fila y/o columna! Corrige los valores para continuar.", 
+                "¡Existen números iguales en la misma fila, columna y/o subcuadrícula! Corrige los valores para continuar.", 
                 parent=custom_window
             )
             return
