@@ -369,37 +369,80 @@ def validate_sudoku_solution():
     edges_df = pd.read_csv(edges_path)
     print(f"Edges Loaded: {len(edges_df)}")
 
-    board_values = {}
+    sub_size = int(N ** 0.5)
+    board_values = [[0] * N for _ in range(N)]
     is_incomplete = False
 
-    for r in range(size):
-        for c in range(size):
-            node_id = r * N + c
+    for r in range(N):
+        for c in range(N):
             entry = entries.get((r, c))
             val_str = entry.get().strip() if entry else ""
+            
             if val_str.isdigit():
-                board_values[node_id] = int(val_str)
-                if val_str == "0":
+                val = int(val_str)
+                board_values[r][c] = val
+                if val == 0:
                     is_incomplete = True
+                else:
+                    # Restaurar color base según corresponda
+                    if entry.cget("state") == "readonly":
+                        entry.config(fg=ProgramColor)
+                    else:
+                        entry.config(fg=UserColor)
             else:
-                board_values[node_id] = None
+                board_values[r][c] = 0
                 is_incomplete = True
+
     if is_incomplete:
         messagebox.showwarning("Tablero Incompleto", "El Sudoku no está completo. Rellena todas las celdas antes de enviar.")
         return
-    
-    is_valid = True
-    for _, row in edges_df.iterrows():
-        u = int(row['origen'])
-        v = int(row['destino'])
-        
-        if u in board_values and v in board_values:
-            val_u = board_values.get(u)
-            val_v = board_values.get(v)
-            
-            if val_u is None or val_v is None or val_u == val_v:
-                is_valid = False
-                break
+
+    invalid_coords = set()
+
+    # 2. Validated rows for duplicates
+    for r in range(N):
+        seen = {}
+        for c in range(N):
+            val = board_values[r][c]
+            if val in seen:
+                invalid_coords.add((r, c))
+                invalid_coords.add((r, seen[val]))
+            else:
+                seen[val] = c
+
+    # 3. Validated columns for duplicates
+    for c in range(N):
+        seen = {}
+        for r in range(N):
+            val = board_values[r][c]
+            if val in seen:
+                invalid_coords.add((r, c))
+                invalid_coords.add((seen[val], c))
+            else:
+                seen[val] = r
+
+    # 4. Validated subgrids for duplicates
+    for br in range(sub_size):
+        for bc in range(sub_size):
+            seen = {}
+            for lr in range(sub_size):
+                for lc in range(sub_size):
+                    r = br * sub_size + lr
+                    c = bc * sub_size + lc
+                    val = board_values[r][c]
+                    if val in seen:
+                        invalid_coords.add((r, c))
+                        invalid_coords.add(seen[val])
+                    else:
+                        seen[val] = (r, c)
+
+    for r in range(N):
+        for c in range(N):
+            entry = entries.get((r, c))
+            if entry and (r, c) in invalid_coords:
+                entry.config(fg=ErrorColor)
+
+    is_valid = len(invalid_coords) == 0
 
     print(f"Validation's results (is_valid): {is_valid}")
 
