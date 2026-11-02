@@ -18,6 +18,10 @@ main_window = Tk()
 main_window.title(AppName + " v" + version)
 main_window.geometry("1000x1000")
 
+UserColor = "#5938C4"
+AlgorithmColor = "#d29bfd"
+ProgramColor = "#000000"
+
 Cells = 0
 Edges = 0
 
@@ -100,7 +104,6 @@ def State_Val():
 def DrawGrid_in_Frame(Frame_Container, size):
     global entries
     
-    # 1. Limpiar cualquier cuadrícula anterior
     for widget in Frame_Container.winfo_children():
         widget.destroy()
         
@@ -124,7 +127,6 @@ def DrawGrid_in_Frame(Frame_Container, size):
     outer_frame = tk.Frame(Frame_Container, bg="white", bd=2)
     outer_frame.pack(padx=2, pady=2)
 
-    # 3. Marco interno con fondo negro para las líneas gruesas de los bloques
     board_inner_frame = tk.Frame(outer_frame, bg="black", bd=2)
     board_inner_frame.pack(padx=1, pady=1)
 
@@ -191,19 +193,19 @@ def fill_cells_by_percentage(size, entries, board_solution, fill_percentage):
             if entry is None:
                 continue
                 
-            # 1. Habilitar la celda PRIMERO para evitar errores de solo lectura
-            entry.config(state="normal", fg="black", bg="white")
-            # 2. Borrar el contenido anterior de forma segura
+            # 1. Enable the entry to allow insertion and set default colors
+            entry.config(state="normal", fg=ProgramColor, bg="white")
+            # 2. erease any existing value before inserting new one
             entry.delete(0, tk.END)
             
             if (r, c) in clue_positions:
                 value = str(board_solution[r][c])
                 entry.insert(0, value)
-                # Bloquear celda pista como readonly
-                entry.config(state="readonly", readonlybackground="white", fg="black")
+                # Block the cell as readonly for program-generated clues
+                entry.config(state="readonly", readonlybackground="white", fg=ProgramColor)
             else:
-                # Celdas vacías listas para que el usuario escriba
-                entry.config(state="normal", bg="white", fg="black")
+                # empty cell for user input
+                entry.config(state="normal", bg="white", fg=UserColor)
 
 def set_values_easy(size, entries, board_solution):
     fill_cells_by_percentage(size, entries, board_solution, fill_percentage=0.55)
@@ -361,14 +363,14 @@ def validate_sudoku_solution():
                 is_valid = False
                 break
 
-    print(f"Resultado de la validación (is_valid): {is_valid}")
+    print(f"Validation's results (is_valid): {is_valid}")
 
     if is_valid:
         State = 1  # Solved correctly
     else:
         State = 2  # Solved incorrectly
 
-    print(f"Nuevo valor de State asignado: {State}")
+    print(f"New State assigned value: {State}")
     State_Val()
 
 def read_current_board_from_gui(size):
@@ -388,7 +390,7 @@ def read_current_board_from_gui(size):
                     board[r][c] = 0
     return board
 
-def update_gui_with_solved_board(board, size):
+def update_gui_with_solved_board(original_board, solved_board, size):
     """
     Updates the GUI entry widgets with the solved board matrix 
     and locks them or marks them appropriately.
@@ -399,14 +401,21 @@ def update_gui_with_solved_board(board, size):
             if entry:
                 # Enable temporarily to insert value
                 entry.config(state="normal")
+                original_val = original_board[r][c]
+                solved_val = solved_board[r][c]
+
                 entry.delete(0, tk.END)
-                value = board[r][c]
-                if value != 0:
-                    entry.insert(0, str(value))
-                    # Lock resolved cells as readonly
-                    entry.config(state="readonly", readonlybackground="white", fg="black")
+
+                if solved_val != 0:
+                    entry.insert(0, str(solved_val))
+
+                    if original_val != 0:
+                        entry.config(state="readonly", readonlybackground="white", fg=ProgramColor)
+                    else:
+                        # Lock resolved cells as readonly
+                        entry.config(state="readonly", readonlybackground="white", fg=AlgorithmColor)
                 else:
-                    entry.config(state="normal", bg="white", fg="black")
+                    entry.config(state="normal", bg="white", fg=ProgramColor)
 
 def solve_sudoku_from_interface():
     """
@@ -464,7 +473,7 @@ def solve_sudoku_from_interface():
         State = 2  
 
     if success:
-        update_gui_with_solved_board(solved_board, size)
+        update_gui_with_solved_board(current_board, solved_board, size)
 
     if 'State_Val' in globals():
         State_Val()
@@ -627,9 +636,9 @@ def open_custom_sudoku_window():
                     main_entry.delete(0, tk.END)
                     if val != 0:
                         main_entry.insert(0, str(val))
-                        main_entry.config(state="readonly", readonlybackground="white", fg="black")
+                        main_entry.config(state="readonly", readonlybackground="white", fg=ProgramColor)
                     else:
-                        main_entry.config(state="normal", bg="white", fg="black")
+                        main_entry.config(state="normal", bg="white", fg=UserColor)
 
         messagebox.showinfo("Éxito", "¡Sudoku personalizado cargado e insertado en el tablero principal!", parent=custom_window)
         Timer = 0
