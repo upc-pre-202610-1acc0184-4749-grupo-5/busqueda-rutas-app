@@ -21,6 +21,7 @@ main_window.geometry("1000x1000")
 UserColor = "#5938C4"
 AlgorithmColor = "#d29bfd"
 ProgramColor = "#000000"
+ErrorColor = "#DC143C"
 
 Cells = 0
 Edges = 0
@@ -54,6 +55,31 @@ BacktrackingTextVar = StringVar()
 BoardFrame  = None
 
 entries = {}
+
+def validate_numeric_input(P):
+    """
+    Returns True if the input value is a number or empty (allows deletion).
+    Blocks letters and special characters automatically.
+    """
+    if P == "":
+        return True
+    if P.isdigit():
+        val = int(P)
+        
+        # Obtain the maximum size (N) based on the current dimension
+        grid_size_str = GridSizeVar.get()
+        if "4x4" in grid_size_str:
+            max_val = 4
+        elif "16x16" in grid_size_str:
+            max_val = 16
+        else:
+            max_val = 9  # Default 9x9 (Classic)
+            
+        # Allow only numbers from 1 to N (adapts if it's 4x4, 9x9 or 16x16)
+        if 1 <= val <= max_val:
+            return True
+        
+    return False
 
 def SaveSetting(*args):
     global Cells, Edges, BoardFrame
@@ -137,6 +163,8 @@ def DrawGrid_in_Frame(Frame_Container, size):
             box.grid(row=br, column=bc, padx=pad_space, pady=pad_space)
             boxes[(br, bc)] = box
 
+    vcmd = (Frame_Container.register(validate_numeric_input), '%P')
+
     for r in range(size):
         for c in range(size):
             br, bc = r // sub_size, c // sub_size
@@ -150,7 +178,9 @@ def DrawGrid_in_Frame(Frame_Container, size):
                 bg="white",      
                 fg="black",      
                 insertbackground="black",
-                relief="flat"
+                relief="flat",
+                validate="key",   
+                validatecommand=vcmd
             )
             
             entry.grid(row=lr, column=lc, padx=1, pady=1)
@@ -539,6 +569,8 @@ def open_custom_sudoku_window():
             box.grid(row=br, column=bc, padx=1, pady=1)
             boxes[(br, bc)] = box
 
+    vcmd_custom = (custom_window.register(validate_numeric_input), '%P')
+
     for r in range(size):
         for c in range(size):
             br, bc = r // sub_size, c // sub_size
@@ -552,7 +584,9 @@ def open_custom_sudoku_window():
                 bg="white",      
                 fg="black",      
                 insertbackground="black",
-                relief="flat"
+                relief="flat",
+                validate="key",
+                validatecommand=vcmd_custom
             )
             entry.grid(row=lr, column=lc, padx=1, pady=1)
             custom_entries[(r, c)] = entry
