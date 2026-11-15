@@ -22,6 +22,60 @@ UserColor = "#5938C4"
 AlgorithmColor = "#d29bfd"
 ProgramColor = "#000000"
 ErrorColor = "#DC143C"
+ButtonColor = "#d29bfd"
+ButtonHoverColor = "#bf74f9"
+
+class RoundedButton(tk.Canvas):
+    def __init__(self, parent, text, command=None, bg_color=AlgorithmColor, text_color="white", radius=15, width=180, height=40, font=("Currier Newß", 12)):
+        super().__init__(parent, width=width, height=height, bg=parent.cget("bg"), highlightthickness=0, bd=0)
+        self.command = command
+        self.bg_color = bg_color
+        self.text_color = text_color
+        
+        # Dibujar la forma redondeada
+        self.rect = self.create_rounded_rect(0, 0, width, height, radius, fill=bg_color, outline="", tags="btn")
+        self.text = self.create_text(width / 2, height / 2, text=text, fill=text_color, font=font, tags="btn")
+        
+        # Eventos de interacción (clic y efectos visuales opcionales)
+        self.tag_bind("btn", "<Button-1>", self._on_click)
+        self.tag_bind("btn", "<Enter>", self._on_hover)
+        self.tag_bind("btn", "<Leave>", self._on_leave)
+
+    def create_rounded_rect(self, x1, y1, x2, y2, radius, **kwargs):
+        points = [
+            x1 + radius, y1,
+            x1 + radius, y1,
+            x2 - radius, y1,
+            x2 - radius, y1,
+            x2, y1,
+            x2, y1 + radius,
+            x2, y1 + radius,
+            x2, y2 - radius,
+            x2, y2 - radius,
+            x2, y2,
+            x2 - radius, y2,
+            x2 - radius, y2,
+            x1 + radius, y2,
+            x1 + radius, y2,
+            x1, y2,
+            x1, y2 - radius,
+            x1, y2 - radius,
+            x1, y1 + radius,
+            x1, y1 + radius,
+            x1, y1
+        ]
+        return self.create_polygon(points, **kwargs, smooth=True)
+
+    def _on_click(self, event):
+        if self.command:
+            self.command()
+
+    def _on_hover(self, event):
+        # Efecto visual al pasar el cursor (cambio sutil de tono)
+        self.itemconfig(self.rect, fill=ButtonHoverColor)
+
+    def _on_leave(self, event):
+        self.itemconfig(self.rect, fill=self.bg_color)
 
 Cells = 0
 Edges = 0
@@ -892,13 +946,13 @@ State_Val()
 ButtonsFrame = Frame(main_window)
 ButtonsFrame.pack()
 
-RandomGenBTN = Button(ButtonsFrame, command=RandomBTN_Click, text="Generar Sudoku Aleatorio", font=("Currier Newß", 12))
+RandomGenBTN = RoundedButton(ButtonsFrame, command=RandomBTN_Click, text="Generar Sudoku Aleatorio", bg_color=ButtonColor, text_color="white", radius=12, width=200, height=30, font=("Currier Newß", 12))
 RandomGenBTN.pack(side=LEFT)
 
-CreateBTN = Button(ButtonsFrame, command=CreateBTN_Click, text="Crear mi propio Sudoku", font=("Currier Newß", 12))
+CreateBTN = RoundedButton(ButtonsFrame, command=CreateBTN_Click, text="Crear mi propio Sudoku", bg_color=ButtonColor, text_color="white", radius=12, width=200, height=30, font=("Currier Newß", 12))
 CreateBTN.pack(side=LEFT, padx=10)
 
-ResolveBTN = Button(ButtonsFrame, command=AutoResolveBTN_Click, text="Resolver Sudoku Ahora", font=("Currier Newß", 12))
+ResolveBTN = RoundedButton(ButtonsFrame, command=AutoResolveBTN_Click, text="Resolver Sudoku Ahora", bg_color=ButtonColor, text_color="white", radius=12, width=200, height=30, font=("Currier Newß", 12))
 ResolveBTN.pack(side=LEFT)
 
 # Sudoku Board Frame
@@ -909,7 +963,7 @@ DrawGrid(BoardFrame, GridSizeVar.get())
 SendButtomFrame = Frame(main_window)
 SendButtomFrame.pack(side=TOP)
 
-SendButton = Button(SendButtomFrame, text="Submit", command=SubmitBTN_Click, font=("Currier Newß", 12))
+SendButton = RoundedButton(SendButtomFrame, command=SubmitBTN_Click, text="Submit", bg_color=ButtonColor, text_color="white", radius=12, width=140, height=36, font=("Currier Newß", 12))
 SendButton.pack(side=TOP)
 
 # Fotter Frame
