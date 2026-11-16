@@ -5,8 +5,10 @@ import random
 import pandas as pd
 import os
 import sys
+import time
 
 from solver import SudokuSolver
+from model import ConstraintGraph, SudokuBoard
 
 # App Info
 AppName = "Sudoku Studio"
@@ -16,7 +18,8 @@ version = "1.0.0"
 # Main Window
 main_window = Tk()
 main_window.title(AppName + " v" + version)
-main_window.geometry("1000x1000")
+main_window.geometry("1100x840")
+main_window.minsize(980, 750)
 
 UserColor = "#5938C4"
 AlgorithmColor = "#d29bfd"
@@ -26,7 +29,7 @@ ButtonColor = "#d29bfd"
 ButtonHoverColor = "#bf74f9"
 
 class RoundedButton(tk.Canvas):
-    def __init__(self, parent, text, command=None, bg_color=AlgorithmColor, text_color="white", radius=15, width=180, height=40, font=("Currier Newß", 12)):
+    def __init__(self, parent, text, command=None, bg_color=AlgorithmColor, text_color="white", radius=15, width=180, height=40, font=("Courier New", 12)):
         super().__init__(parent, width=width, height=height, bg=parent.cget("bg"), highlightthickness=0, bd=0)
         self.command = command
         self.bg_color = bg_color
@@ -84,7 +87,10 @@ Backtracks = 0
 State = 0
 
 Timer_Switch = False
-Timer = 0
+Timer_Start = 0.0
+Timer_After_ID = None
+
+initial_clues_board = None
 
 StateVal = {
     "Solved": None
@@ -135,22 +141,24 @@ def validate_numeric_input(P):
         
     return False
 
-def SaveSetting(*args):
-    global Cells, Edges, BoardFrame
+last_drawn_dimension = None
 
-    current_settings["Dimension"] = DimensionVar.get()
+def SaveSetting(*args):
+    global Cells, Edges, BoardFrame, last_drawn_dimension
+
+    dim_str = DimensionVar.get()
     current_settings["Difficulty"] = DifficultyVar.get()
     current_settings["Algorithm"] = AlgorithmVar.get()
 
-    if DimensionVar.get() == "4x4 (K=2) [Small]":
+    if "4x4" in dim_str:
         current_settings["Dimension"] = "4x4"
         Cells = 16
         Edges = 56
-    elif DimensionVar.get() == "9x9 (K=3) [Classic]":
+    elif "9x9" in dim_str:
         current_settings["Dimension"] = "9x9"
         Cells = 81
         Edges = 810
-    elif DimensionVar.get() == "16x16 (K=4) [Large]":
+    elif "16x16" in dim_str:
         current_settings["Dimension"] = "16x16"
         Cells = 256
         Edges = 4992
@@ -159,13 +167,37 @@ def SaveSetting(*args):
         Cells = 0
         Edges = 0
 
-    GridSizeVar.set(f" {current_settings['Dimension']}")
-    GridTextVar.set(f"Cuadrícula: {GridSizeVar.get()} ({Cells} Celdas {Edges} Aristas)")
-
+    GridSizeVar.set(f"{current_settings['Dimension']}")
     State_Val()
 
-    if BoardFrame is not None:
-        DrawGrid(BoardFrame, GridSizeVar.get())
+def restore_to_initial_clues():
+    """
+    Restaura el tablero visual a sus pistas iniciales si ya fue resuelto
+    o modificado, permitiendo resolver el mismo problema con otro algoritmo.
+    """
+    global initial_clues_board, State, Backtracks
+    if initial_clues_board is None:
+        return
+    
+    size = len(initial_clues_board)
+    for r in range(size):
+        for c in range(size):
+            entry = entries.get((r, c))
+            if not entry:
+                continue
+            init_val = initial_clues_board[r][c]
+            entry.config(state="normal")
+            entry.delete(0, tk.END)
+            if init_val != 0:
+                entry.insert(0, str(init_val))
+                entry.config(state="readonly", readonlybackground="white", fg=ProgramColor)
+            else:
+                entry.config(state="normal", bg="white", fg=UserColor)
+    
+    State = 0
+    Backtracks = 0
+    BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
+    State_Val()
 
 def State_Val():
     global State
@@ -194,15 +226,15 @@ def DrawGrid_in_Frame(Frame_Container, size):
     if size == 16:
         font_size = 9
         entry_width = 2
-        pad_space = 0
-    elif size == 9:
-        font_size = 11
-        entry_width = 2
         pad_space = 1
-    else: # 4x4
-        font_size = 11
-        entry_width = 2
+    elif size == 9:
+        font_size = 15
+        entry_width = 3
         pad_space = 2
+    else: # 4x4
+        font_size = 18
+        entry_width = 4
+        pad_space = 3
 
     outer_frame = tk.Frame(Frame_Container, bg="white", bd=2)
     outer_frame.pack(padx=2, pady=2)
@@ -267,10 +299,14 @@ def fill_cells_by_percentage(size, entries, board_solution, fill_percentage):
     """
     total_cells = size * size
     num_clues = int(total_cells * fill_percentage)
+    empty_cells = total_cells - num_clues
     
     all_positions = [(r, c) for r in range(size) for c in range(size)]
     clue_positions = set(random.sample(all_positions, num_clues))
     
+    global initial_clues_board
+    initial_clues_board = [[0] * size for _ in range(size)]
+
     for r in range(size):
         for c in range(size):
             entry = entries.get((r, c))
@@ -284,12 +320,16 @@ def fill_cells_by_percentage(size, entries, board_solution, fill_percentage):
             
             if (r, c) in clue_positions:
                 value = str(board_solution[r][c])
+                initial_clues_board[r][c] = board_solution[r][c]
                 entry.insert(0, value)
                 # Block the cell as readonly for program-generated clues
                 entry.config(state="readonly", readonlybackground="white", fg=ProgramColor)
             else:
                 # empty cell for user input
                 entry.config(state="normal", bg="white", fg=UserColor)
+
+    pct_empty = int(round((1.0 - fill_percentage) * 100))
+    GridTextVar.set(f"Cuadrícula: {size}x{size} | Pistas: {num_clues} | Vacías: {empty_cells} ({pct_empty}%)")
 
 def set_values_easy(size, entries, board_solution):
     fill_cells_by_percentage(size, entries, board_solution, fill_percentage=0.55)
@@ -369,8 +409,9 @@ def set_values(entries):
         k = 3
 
     # 2. Read dataset files (sudoku_nodes.csv and sudoku_edges.csv)
-    nodes_path = "../dataset/sudoku_nodes.csv"
-    edges_path = "../dataset/sudoku_edges.csv"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    nodes_path = os.path.join(base_dir, "..", "dataset", "sudoku_nodes.csv")
+    edges_path = os.path.join(base_dir, "..", "dataset", "sudoku_edges.csv")
 
     if os.path.exists(nodes_path) and os.path.exists(edges_path):
         nodes_df = pd.read_csv(nodes_path)
@@ -453,42 +494,23 @@ def validate_sudoku_solution():
 
     invalid_coords = set()
 
-    # 2. Validated rows for duplicates
-    for r in range(N):
-        seen = {}
-        for c in range(N):
-            val = board_values[r][c]
-            if val in seen:
-                invalid_coords.add((r, c))
-                invalid_coords.add((r, seen[val]))
-            else:
-                seen[val] = c
-
-    # 3. Validated columns for duplicates
-    for c in range(N):
-        seen = {}
+    # 2. Validación de restricciones usando el Grafo de Restricciones del Modelo (Jennifer)
+    try:
+        model_board = SudokuBoard(k=sub_size)
         for r in range(N):
-            val = board_values[r][c]
-            if val in seen:
-                invalid_coords.add((r, c))
-                invalid_coords.add((seen[val], c))
-            else:
-                seen[val] = r
+            for c in range(N):
+                node = model_board.node_id(r, c)
+                model_board.values[node] = board_values[r][c]
 
-    # 4. Validated subgrids for duplicates
-    for br in range(sub_size):
-        for bc in range(sub_size):
-            seen = {}
-            for lr in range(sub_size):
-                for lc in range(sub_size):
-                    r = br * sub_size + lr
-                    c = bc * sub_size + lc
-                    val = board_values[r][c]
-                    if val in seen:
-                        invalid_coords.add((r, c))
-                        invalid_coords.add(seen[val])
-                    else:
-                        seen[val] = (r, c)
+        conflicts = model_board.conflicts()
+        for pos_a, pos_b in conflicts:
+            invalid_coords.add(pos_a)
+            invalid_coords.add(pos_b)
+
+        is_valid = model_board.is_solved()
+    except Exception as e:
+        print(f"Aviso en validación con Grafo de Restricciones: {e}")
+        is_valid = len(invalid_coords) == 0
 
     for r in range(N):
         for c in range(N):
@@ -547,8 +569,8 @@ def update_gui_with_solved_board(original_board, solved_board, size):
                     if original_val != 0:
                         entry.config(state="readonly", readonlybackground="white", fg=ProgramColor)
                     else:
-                        # Lock resolved cells as readonly
-                        entry.config(state="readonly", readonlybackground="white", fg=AlgorithmColor)
+                        # Resaltado cromático claro y visible para celdas resueltas por el algoritmo
+                        entry.config(state="readonly", readonlybackground="#EDE9FE", fg="#4C1D95")
                 else:
                     entry.config(state="normal", bg="white", fg=ProgramColor)
 
@@ -591,13 +613,11 @@ def solve_sudoku_from_interface():
     Backtracks = metrics["backtracks"]
     execution_time_ms = metrics["tiempo_ms"]
 
-    if 'Timer_Switch' in globals():
-        global Timer_Switch
-        Timer_Switch = False  
+    stop_timer()
 
-    # Actualizar texto del Timer en la interfaz
+    # Actualizar texto del Timer en la interfaz con tiempo de resolución del algoritmo
     if 'TimeLabel' in globals():
-        TimeLabel.config(text=f"Tiempo: {execution_time_ms:.2f} ms")
+        TimeLabel.config(text=f"Tiempo (Solver): {execution_time_ms:.2f} ms")
 
     # Actualizar texto de Backtracks correctamente usando StringVar
     BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks:,}")
@@ -693,7 +713,7 @@ def open_custom_sudoku_window():
         Validates that no two identical numbers exist in the same row or column.
         If valid, copies the custom puzzle into the main window's grid.
         """
-        global Timer, Timer_Switch
+        global Timer_Switch
 
         board_values = [[0] * size for _ in range(size)]
         
@@ -726,65 +746,37 @@ def open_custom_sudoku_window():
                 else:
                     board_values[r][c] = 0
 
-        # Check row, column, and subgrid constraints for duplicates
+        # Validar restricciones topológicas usando el Grafo de Restricciones del Modelo (Jennifer)
         has_duplicates = False
-
-        # 1. Check rows
-        for r in range(size):
-            seen = set()
-            for c in range(size):
-                val = board_values[r][c]
-                if val != 0:
-                    if val in seen:
-                        has_duplicates = True
-                        break
-                    seen.add(val)
-            if has_duplicates:
-                break
-
-        # 2. Check columns
-        if not has_duplicates:
-            for c in range(size):
-                seen = set()
-                for r in range(size):
+        try:
+            temp_board = SudokuBoard(k=sub_size)
+            for r in range(size):
+                for c in range(size):
                     val = board_values[r][c]
                     if val != 0:
-                        if val in seen:
-                            has_duplicates = True
-                            break
-                        seen.add(val)
-                if has_duplicates:
-                    break
-        # 3. Check subgrids
-        if not has_duplicates:
-            for br in range(sub_size):
-                for bc in range(sub_size):
-                    seen = set()
-                    for lr in range(sub_size):
-                        for lc in range(sub_size):
-                            r = br * sub_size + lr
-                            c = bc * sub_size + lc
-                            val = board_values[r][c]
-                            if val != 0:
-                                if val in seen:
-                                    has_duplicates = True
-                                    break
-                                seen.add(val)
-                        if has_duplicates:
-                            break
-                    if has_duplicates:
-                        break
-                    
-        # If duplicate found, show warning and abort transfer
-        if has_duplicates:
-            messagebox.showwarning(
-                "Error de Restricción", 
-                "¡Existen números iguales en la misma fila, columna y/o subcuadrícula! Corrige los valores para continuar.", 
-                parent=custom_window
-            )
+                        temp_board.values[temp_board.node_id(r, c)] = val
+
+            conflicts = temp_board.conflicts()
+            if conflicts:
+                has_duplicates = True
+                pos_a, pos_b = conflicts[0]
+                val_conflict = board_values[pos_a[0]][pos_a[1]]
+                messagebox.showwarning(
+                    "Error de Restricción", 
+                    f"¡Conflicto detectado en el Grafo de Restricciones!\n"
+                    f"Las celdas {pos_a} y {pos_b} repiten el número {val_conflict}.\n"
+                    f"Corrige los valores para continuar.", 
+                    parent=custom_window
+                )
+                return
+        except Exception as e:
+            messagebox.showwarning("Error de Restricción", f"Error al validar restricciones: {e}", parent=custom_window)
             return
         
         # If valid, copy numbers to the main grid entries and lock them as initial clues
+        global initial_clues_board
+        initial_clues_board = [[board_values[r][c] for c in range(size)] for r in range(size)]
+
         for r in range(size):
             for c in range(size):
                 val = board_values[r][c]
@@ -799,10 +791,8 @@ def open_custom_sudoku_window():
                         main_entry.config(state="normal", bg="white", fg=UserColor)
 
         messagebox.showinfo("Éxito", "¡Sudoku personalizado cargado e insertado en el tablero principal!", parent=custom_window)
-        Timer = 0
-        Timer_Switch = True
-        Timer_Update()
         custom_window.destroy()
+        start_timer()
 
     # 4. Button inside the custom window
     submit_custom_btn = Button(
@@ -815,8 +805,7 @@ def open_custom_sudoku_window():
     submit_custom_btn.pack(pady=15)
 
     def on_close():
-        global Timer_Switch, Timer
-        Timer_Switch = False
+        stop_timer()
         messagebox.showwarning(
             "Ventana Activa", 
             "Debes completar, validar y cargar tu Sudoku con almenos un numero o usar el botón correspondiente. No puedes cerrar esta ventana directamente.", 
@@ -825,68 +814,77 @@ def open_custom_sudoku_window():
 
     custom_window.protocol("WM_DELETE_WINDOW", on_close)
 
-def Timer_Update():
-    if Timer_Switch:
-        global Timer
-        Timer += 1
+def start_timer():
+    """Inicia o reinicia el cronómetro de juego en tiempo real (segundos y décimas)."""
+    global Timer_Switch, Timer_Start, Timer_After_ID
+    stop_timer()
+    Timer_Start = time.perf_counter()
+    Timer_Switch = True
+    Timer_Update()
 
-        TimeLabel.config(text=f"Tiempo: {Timer} ms")
-        main_window.after(1, Timer_Update)
+def stop_timer():
+    """Detiene el cronómetro y cancela eventos pendientes para evitar desbordes."""
+    global Timer_Switch, Timer_After_ID
+    Timer_Switch = False
+    if Timer_After_ID is not None:
+        try:
+            main_window.after_cancel(Timer_After_ID)
+        except Exception:
+            pass
+        Timer_After_ID = None
+
+def Timer_Update():
+    """Actualiza la etiqueta de tiempo con precisión de reloj del sistema."""
+    global Timer_Switch, Timer_After_ID
+    if Timer_Switch:
+        elapsed = time.perf_counter() - Timer_Start
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+        millis = int((elapsed * 10) % 10)
+        if 'TimeLabel' in globals():
+            TimeLabel.config(text=f"Tiempo: {minutes:02d}:{seconds:02d}.{millis}")
+        Timer_After_ID = main_window.after(100, Timer_Update)
 
 def RandomBTN_Click():
     set_values(entries)
-    global Timer_Switch, Timer, State, Backtracks
+    global State, Backtracks
     Backtracks = 0
     BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
     State = 0
     State_Val()
-    Timer = 0
-    Timer_Switch = True
-    Timer_Update()
+    start_timer()
 
 def CreateBTN_Click():
-    global Timer_Switch, Timer, State, Backtracks
-    Timer_Switch = False
+    global State, Backtracks
+    stop_timer()
     Backtracks = 0
     BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
     State = 0
     State_Val()
-    
     open_custom_sudoku_window()
- 
 
 def AutoResolveBTN_Click():
-    global Timer_Switch, Timer, State, Backtracks
+    stop_timer()
+    global State, Backtracks
     Backtracks = 0
     BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
     State = 0
     State_Val()
-    Timer = 0
-    Timer_Switch = True
-    Timer_Update()
     solve_sudoku_from_interface()
-    Timer_Switch = False
 
 def SubmitBTN_Click():
+    stop_timer()
     validate_sudoku_solution()
-    global Timer_Switch
-    WarningMSG = messagebox.askyesno("Warning", "Estas segur@ de proceder?")
-
-    if WarningMSG:
-        Timer_Switch = False
-    else:
-        Timer_Switch = True
-        Timer_Update()
 
 # main_window.lift()
 # main_window.attributes('-topmost', True)
 # main_window.after_idle(main_window.attributes, '-topmost', False)
 
 # UI Elements
-title = Label(main_window, text=AppName + " - NxN Generalizado", font=("Currier Newß", 12))
+title = Label(main_window, text=AppName + " - NxN Generalizado", font=("Courier New", 12))
 title.pack()
 
-description = Label(main_window, text=AppDescription, font=("Currier Newß", 12))
+description = Label(main_window, text=AppDescription, font=("Courier New", 12))
 description.pack()
 
 # Selection Box
@@ -902,9 +900,9 @@ DimensionVar = StringVar()
 DimensionVar.set(DimensionVal[0])
 DimensionVar.set(list(DimensionVal)[1])  # Set the default value
 
-DimensionLabel = Label(DimensionFrame, text="Dimension:", font=("Currier Newß", 12))
+DimensionLabel = Label(DimensionFrame, text="Dimension:", font=("Courier New", 12))
 DimensionLabel.pack(side=LEFT)
-DimensionEntry = OptionMenu(DimensionFrame, DimensionVar, *DimensionVal, command=SaveSetting)
+DimensionEntry = OptionMenu(DimensionFrame, DimensionVar, *DimensionVal)
 DimensionEntry.pack(side=LEFT)
 
 # Dificulty Selection
@@ -916,7 +914,7 @@ DifficultyVar = StringVar()
 DifficultyVar.set(DifficultyVal[0]) 
 DifficultyVar.set(list(DifficultyVal)[0])  # Set the default value
 
-DifficultyLabel = Label(DifficultyFrame, text="Dificultad:", font=("Currier Newß", 12))
+DifficultyLabel = Label(DifficultyFrame, text="Dificultad:", font=("Courier New", 12))
 DifficultyLabel.pack(side=LEFT)
 DifficultyEntry = OptionMenu(DifficultyFrame, DifficultyVar, *DifficultyVal)
 DifficultyEntry.pack(side=LEFT)
@@ -930,84 +928,93 @@ AlgorithmVar = StringVar()
 AlgorithmVar.set(AlgorithmVal[0])
 AlgorithmVar.set(list(AlgorithmVal)[0])  # Set the default value
 
-AlgorithmLabel = Label(AlgorithmFrame, text="Algoritmo:", font=("Currier Newß", 12))
+AlgorithmLabel = Label(AlgorithmFrame, text="Algoritmo:", font=("Courier New", 12))
 AlgorithmLabel.pack(side=LEFT)
 AlgorithmEntry = OptionMenu(AlgorithmFrame, AlgorithmVar, *AlgorithmVal)
 AlgorithmEntry.pack(side=LEFT)
 
-DimensionVar.trace_add("write", lambda *args: SaveSetting())
-DifficultyVar.trace_add("write", lambda *args: SaveSetting())
-AlgorithmVar.trace_add("write", lambda *args: SaveSetting())
+def on_dimension_change(*args):
+    """Maneja el cambio de dimensión (4x4, 9x9, 16x16): redibuja la cuadrícula y genera tablero nuevo."""
+    global last_drawn_dimension, initial_clues_board
+    SaveSetting()
+    if BoardFrame is not None:
+        last_drawn_dimension = current_settings["Dimension"]
+        initial_clues_board = None
+        DrawGrid(BoardFrame, GridSizeVar.get())
+        RandomBTN_Click()
+
+def on_difficulty_change(*args):
+    """Maneja el cambio de dificultad: actualiza settings y regenera el tablero inmediatamente."""
+    SaveSetting()
+    if BoardFrame is not None and len(entries) > 0:
+        RandomBTN_Click()
+
+def on_algorithm_change(*args):
+    """Maneja el cambio de algoritmo: si ya estaba resuelto, restaura a las pistas iniciales."""
+    current_settings["Algorithm"] = AlgorithmVar.get()
+    if State == 1:
+        restore_to_initial_clues()
+
+DimensionVar.trace_add("write", on_dimension_change)
+DifficultyVar.trace_add("write", on_difficulty_change)
+AlgorithmVar.trace_add("write", on_algorithm_change)
 
 SaveSetting()
 State_Val()
 
 # Buttons Frame
 ButtonsFrame = Frame(main_window)
-ButtonsFrame.pack()
+ButtonsFrame.pack(pady=8)
 
-RandomGenBTN = RoundedButton(ButtonsFrame, command=RandomBTN_Click, text="Generar Sudoku Aleatorio", bg_color=ButtonColor, text_color="white", radius=12, width=200, height=30, font=("Currier Newß", 12))
-RandomGenBTN.pack(side=LEFT)
+RandomGenBTN = RoundedButton(ButtonsFrame, command=RandomBTN_Click, text="Generar Aleatorio", bg_color=ButtonColor, text_color="white", radius=14, width=200, height=36, font=("Courier New", 11, "bold"))
+RandomGenBTN.pack(side=LEFT, padx=8)
 
-CreateBTN = RoundedButton(ButtonsFrame, command=CreateBTN_Click, text="Crear mi propio Sudoku", bg_color=ButtonColor, text_color="white", radius=12, width=200, height=30, font=("Currier Newß", 12))
-CreateBTN.pack(side=LEFT, padx=10)
+CreateBTN = RoundedButton(ButtonsFrame, command=CreateBTN_Click, text="Crear Propio", bg_color=ButtonColor, text_color="white", radius=14, width=180, height=36, font=("Courier New", 11, "bold"))
+CreateBTN.pack(side=LEFT, padx=8)
 
-ResolveBTN = RoundedButton(ButtonsFrame, command=AutoResolveBTN_Click, text="Resolver Sudoku Ahora", bg_color=ButtonColor, text_color="white", radius=12, width=200, height=30, font=("Currier Newß", 12))
-ResolveBTN.pack(side=LEFT)
+ResolveBTN = RoundedButton(ButtonsFrame, command=AutoResolveBTN_Click, text="Resolver Ahora", bg_color=ButtonColor, text_color="white", radius=14, width=190, height=36, font=("Courier New", 11, "bold"))
+ResolveBTN.pack(side=LEFT, padx=8)
+
+SendButton = RoundedButton(ButtonsFrame, command=SubmitBTN_Click, text="Comprobar (Submit)", bg_color="#8B5CF6", text_color="white", radius=14, width=210, height=36, font=("Courier New", 11, "bold"))
+SendButton.pack(side=LEFT, padx=8)
 
 # Sudoku Board Frame
 BoardFrame = Frame(main_window)
 BoardFrame.pack(pady=10)
+last_drawn_dimension = current_settings["Dimension"]
 DrawGrid(BoardFrame, GridSizeVar.get())
 
-SendButtomFrame = Frame(main_window)
-SendButtomFrame.pack(side=TOP)
+# Telemetry Frame (Ubicado debajo del tablero de Sudoku)
+TelemetryFrame = Frame(main_window, bg="#F1F5F9", bd=1, relief="groove")
+TelemetryFrame.pack(pady=8, padx=40, fill=X)
 
-SendButton = RoundedButton(SendButtomFrame, command=SubmitBTN_Click, text="Submit", bg_color=ButtonColor, text_color="white", radius=12, width=140, height=36, font=("Currier Newß", 12))
-SendButton.pack(side=TOP)
+TelemetryTitle = Label(TelemetryFrame, text="Telemetría de Complejidad y Rendimiento", font=("Courier New", 11, "bold"), bg="#F1F5F9", fg="#1E293B")
+TelemetryTitle.pack(side=TOP, pady=3)
 
-# Fotter Frame
-FotterFrame = Frame(main_window)
-FotterFrame.pack(side=BOTTOM)
+# Fila 1: Estado y Configuración de Cuadrícula/Dificultad
+TelemetryRow1 = Frame(TelemetryFrame, bg="#F1F5F9")
+TelemetryRow1.pack(side=TOP, pady=2, fill=X)
 
-# Left Fotter Frame
-LeftFotterFrame = Frame(FotterFrame)
-LeftFotterFrame.pack(side=LEFT, pady=15)
+StateLabel = Label(TelemetryRow1, textvariable=StateTextVar, font=("Courier New", 10, "bold"), bg="#F1F5F9", fg="#334155")
+StateLabel.pack(side=LEFT, padx=20)
 
-FotterTitleLabel = Label(LeftFotterFrame, text="Telemetria de Complejidad y Rendimiento", font=("Currier Newß", 12))
-FotterTitleLabel.pack(side=TOP)
+GridLabel = Label(TelemetryRow1, textvariable=GridTextVar, font=("Courier New", 10, "bold"), bg="#F1F5F9", fg="#475569")
+GridLabel.pack(side=RIGHT, padx=20)
 
-SubFrame0 = Frame(LeftFotterFrame)
-SubFrame0.pack(side=TOP)
+# Fila 2: Métricas de Ejecución (Tiempo y Backtracking)
+TelemetryRow2 = Frame(TelemetryFrame, bg="#F1F5F9")
+TelemetryRow2.pack(side=TOP, pady=2, fill=X)
 
-StateFrame = Frame(SubFrame0)
-StateFrame.pack(side=LEFT)
-
-StateLabel = Label(StateFrame, textvariable=StateTextVar, font=("Currier Newß", 12))
-StateLabel.pack()
-
-SubFrame = Frame(LeftFotterFrame)
-SubFrame.pack(side=TOP)
-
-TimeFrame = Frame(SubFrame)
-TimeFrame.pack(side=LEFT, padx=20)
-
-TimeLabel = Label(TimeFrame, text="Tiempo: " + str(Timer) + " ms", font=("Currier Newß", 12))
-TimeLabel.pack()
-
-BacktrackingFrame = Frame(SubFrame)
-BacktrackingFrame.pack(side=RIGHT)
+TimeLabel = Label(TelemetryRow2, text="Tiempo: 00:00.0", font=("Courier New", 10, "bold"), bg="#F1F5F9", fg="#2563EB")
+TimeLabel.pack(side=LEFT, padx=20)
 
 BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
-BacktrackingLabel = Label(BacktrackingFrame, textvariable=BacktrackingTextVar, font=("Currier Newß", 12))
-BacktrackingLabel.pack()
+BacktrackingLabel = Label(TelemetryRow2, textvariable=BacktrackingTextVar, font=("Courier New", 10, "bold"), bg="#F1F5F9", fg="#7C3AED")
+BacktrackingLabel.pack(side=LEFT, padx=30)
 
-#Right Fotter Frame
-RightFotterFrame = Frame(FotterFrame)
-RightFotterFrame.pack(side=LEFT, padx=30)
-
-GridLabel = Label(RightFotterFrame, textvariable=GridTextVar, font=("Currier Newß", 12))
-GridLabel.pack(side=BOTTOM)
+# Generar automáticamente un tablero inicial listo para jugar
+RandomBTN_Click()
 
 # Start the main Window
-main_window.mainloop()
+if __name__ == "__main__":
+    main_window.mainloop()

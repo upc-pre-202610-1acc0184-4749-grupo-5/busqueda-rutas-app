@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local testing and scratch files
+verify_*.py
+*.tmp
+.DS_Store
+Thumbs.db
+
