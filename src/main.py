@@ -229,12 +229,12 @@ def DrawGrid_in_Frame(Frame_Container, size):
         pad_space = 1
     elif size == 9:
         font_size = 15
-        entry_width = 3
+        entry_width = 2
         pad_space = 2
     else: # 4x4
         font_size = 18
-        entry_width = 4
-        pad_space = 3
+        entry_width = 2
+        pad_space = 2
 
     outer_frame = tk.Frame(Frame_Container, bg="white", bd=2)
     outer_frame.pack(padx=2, pady=2)
