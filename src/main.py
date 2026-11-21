@@ -4,6 +4,7 @@ import tkinter as tk
 import random
 import pandas as pd
 import os
+import subprocess
 import sys
 import time
 
@@ -27,6 +28,37 @@ ProgramColor = "#000000"
 ErrorColor = "#DC143C"
 ButtonColor = "#d29bfd"
 ButtonHoverColor = "#bf74f9"
+
+def get_system_theme(window) -> str:
+    """Return 'dark' or 'light' first macOS and support for Windows."""
+    try:
+        if sys.platform == "darwin":
+            res = subprocess.run(
+                ["defaults", "read", "-g", "AppleInterfaceStyle"],
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+            return "dark" if (res.returncode == 0 and "dark" in res.stdout.lower()) else "light"
+
+        if sys.platform.startswith("win"):
+            import winreg
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            ) as key:
+                apps_use_light, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+                return "light" if apps_use_light == 1 else "dark"
+    except Exception:
+        pass
+
+    # Respaldo según el fondo de la ventana principal
+    bg = str(window.cget("bg")).lstrip("#")
+    if len(bg) == 6:
+        r, g, b = int(bg[0:2], 16), int(bg[2:4], 16), int(bg[4:6], 16)
+        return "dark" if (0.299 * r + 0.587 * g + 0.114 * b) < 128 else "light"
+
+    return "dark"
 
 class RoundedButton(tk.Canvas):
     def __init__(self, parent, text, command=None, bg_color=AlgorithmColor, text_color="white", radius=15, width=180, height=40, font=("Courier New", 12)):
@@ -987,29 +1019,50 @@ DrawGrid(BoardFrame, GridSizeVar.get())
 # Telemetry Frame (Ubicado debajo del tablero de Sudoku)
 TelemetryFrame = Frame(main_window, bg="#F1F5F9", bd=1, relief="groove")
 TelemetryFrame.pack(pady=8, padx=40, fill=X)
+theme = get_system_theme(main_window)
 
-TelemetryTitle = Label(TelemetryFrame, text="Telemetría de Complejidad y Rendimiento", font=("Courier New", 11, "bold"), bg="#F1F5F9", fg="#1E293B")
+if theme == "dark":
+    t_bg = "#1A1C20"
+    t_title_fg = "#F8FAFC"
+    t_state_fg = "#E2E8F0"
+    t_grid_fg = "#94A3B8"
+    t_border = "#21262E"
+else:  # "light"
+    t_bg = "#FFFFFF"
+    t_title_fg = "#1E293B"
+    t_state_fg = "#334155"
+    t_grid_fg = "#475569"
+    t_border = "#CBD5E1"
+
+TelemetryFrame.config(
+    bg=t_bg,
+    highlightbackground=t_border,
+    highlightthickness=1,
+    bd=0,
+)
+
+TelemetryTitle = Label(TelemetryFrame, text="Telemetría de Complejidad y Rendimiento", font=("Courier New", 11, "bold"), bg=t_bg, fg=t_title_fg)
 TelemetryTitle.pack(side=TOP, pady=3)
 
 # Fila 1: Estado y Configuración de Cuadrícula/Dificultad
-TelemetryRow1 = Frame(TelemetryFrame, bg="#F1F5F9")
+TelemetryRow1 = Frame(TelemetryFrame, bg=t_bg)
 TelemetryRow1.pack(side=TOP, pady=2, fill=X)
 
-StateLabel = Label(TelemetryRow1, textvariable=StateTextVar, font=("Courier New", 10, "bold"), bg="#F1F5F9", fg="#334155")
+StateLabel = Label(TelemetryRow1, textvariable=StateTextVar, font=("Courier New", 10, "bold"), bg=t_bg, fg=t_title_fg)
 StateLabel.pack(side=LEFT, padx=20)
 
-GridLabel = Label(TelemetryRow1, textvariable=GridTextVar, font=("Courier New", 10, "bold"), bg="#F1F5F9", fg="#475569")
+GridLabel = Label(TelemetryRow1, textvariable=GridTextVar, font=("Courier New", 10, "bold"), bg=t_bg, fg=t_title_fg)
 GridLabel.pack(side=RIGHT, padx=20)
 
 # Fila 2: Métricas de Ejecución (Tiempo y Backtracking)
-TelemetryRow2 = Frame(TelemetryFrame, bg="#F1F5F9")
+TelemetryRow2 = Frame(TelemetryFrame, bg=t_bg)
 TelemetryRow2.pack(side=TOP, pady=2, fill=X)
 
-TimeLabel = Label(TelemetryRow2, text="Tiempo: 00:00.0", font=("Courier New", 10, "bold"), bg="#F1F5F9", fg="#2563EB")
+TimeLabel = Label(TelemetryRow2, text="Tiempo: 00:00.0", font=("Courier New", 10, "bold"), bg=t_bg, fg="#2563EB")
 TimeLabel.pack(side=LEFT, padx=20)
 
 BacktrackingTextVar.set(f"Retrocesos(Backtracking): {Backtracks}")
-BacktrackingLabel = Label(TelemetryRow2, textvariable=BacktrackingTextVar, font=("Courier New", 10, "bold"), bg="#F1F5F9", fg="#7C3AED")
+BacktrackingLabel = Label(TelemetryRow2, textvariable=BacktrackingTextVar, font=("Courier New", 10, "bold"), bg=t_bg, fg="#7C3AED")
 BacktrackingLabel.pack(side=LEFT, padx=30)
 
 # Generar automáticamente un tablero inicial listo para jugar
